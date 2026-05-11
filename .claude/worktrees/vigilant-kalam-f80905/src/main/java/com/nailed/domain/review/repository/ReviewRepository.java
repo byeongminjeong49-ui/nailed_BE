@@ -1,0 +1,19 @@
+package com.nailed.domain.review.repository;
+
+import com.nailed.domain.review.entity.Review;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+import java.util.Optional;
+
+public interface ReviewRepository extends JpaRepository<Review, Long> {
+
+    boolean existsByOrderOrderId(String orderId);
+
+    Optional<Review> findByOrderOrderId(String orderId);
+
+    @Query("SELECT r FROM Review r JOIN r.order o WHERE o.seller.memberId = :sellerId")
+    Page<Review> findBySellerMemberId(String sellerId, Pageable pageable);
+}
