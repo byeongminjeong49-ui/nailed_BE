@@ -46,10 +46,14 @@ public class EmailLoginVerification extends BaseEntity {
     }
 
     public static EmailLoginVerification issue(String email, String verificationCode) {
+        return issue(email, verificationCode, 5);
+    }
+
+    public static EmailLoginVerification issue(String email, String verificationCode, int expiresInMinutes) {
         return EmailLoginVerification.builder()
                 .email(email)
                 .verificationCode(verificationCode)
-                .expiresAt(LocalDateTime.now().plusMinutes(5))
+                .expiresAt(LocalDateTime.now().plusMinutes(expiresInMinutes))
                 .build();
     }
 
@@ -61,5 +65,9 @@ public class EmailLoginVerification extends BaseEntity {
 
     public void complete() {
         this.verified = true;
+    }
+
+    public boolean isVerifiedAndValid() {
+        return verified && expiresAt.isAfter(LocalDateTime.now());
     }
 }
