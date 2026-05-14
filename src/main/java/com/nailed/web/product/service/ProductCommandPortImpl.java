@@ -1,56 +1,48 @@
 package com.nailed.web.product.service;
 
+import com.nailed.common.enums.ProductStatus;
+import com.nailed.common.exception.CustomException;
+import com.nailed.common.exception.ErrorCode;
 import com.nailed.web.order.service.ProductCommandPort;
+import com.nailed.web.product.entity.Product;
+import com.nailed.web.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
-/**
- * Order 도메인의 ProductCommandPort 구현체.
- * product 도메인 패키지에 위치 (Anti-Corruption Layer)
- *
- * TODO: ProductRepository 주입받아 실제 비관적 락 로직 구현
- *       @Lock(LockModeType.PESSIMISTIC_WRITE) 필수!
- */
 @Component
 @RequiredArgsConstructor
 public class ProductCommandPortImpl implements ProductCommandPort {
 
-    // TODO: 실제 구현 시 ProductRepository 주입
-    // private final ProductRepository productRepository;
+    private final ProductRepository productRepository;
 
-    /**
-     * 상품 정보 조회 (일반 조회, 락 불필요)
-     */
     @Override
     public ProductInfo getProductInfo(Long productId) {
-        // TODO: productRepository.findById(productId)
-        return new ProductInfo(productId, 1L, 10000);  // 더미 데이터
+        Product p = findProduct(productId);
+        return new ProductInfo(p.getProductId(), p.getSellerId(), p.getPrice());
     }
 
-    /**
-     * 비관적 쓰기 락으로 상품 정보 조회 (동시 구매 방지)
-     */
     @Override
     public ProductInfo lockAndGetProductInfo(Long productId) {
-        // TODO: @Lock(LockModeType.PESSIMISTIC_WRITE) 적용된 메서드 호출 필요
-        return new ProductInfo(productId, 1L, 10000);  // 더미 데이터
+        Product p = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+        return new ProductInfo(p.getProductId(), p.getSellerId(), p.getPrice());
     }
 
-    /**
-     * 판매 완료 상태로 변경
-     */
+    @Transactional
     @Override
     public void markAsSoldOut(Long productId) {
-        // TODO: product.changeStatus(SOLD_OUT)
-        System.out.println("[DUMMY] markAsSoldOut: " + productId);
+        findProduct(productId).changeStatus(ProductStatus.SOLD_OUT);
     }
 
-    /**
-     * 다시 판매중 상태로 복원
-     */
+    @Transactional
     @Override
     public void restoreToOnSale(Long productId) {
-        // TODO: product.changeStatus(ON_SALE)
-        System.out.println("[DUMMY] restoreToOnSale: " + productId);
+        findProduct(productId).changeStatus(ProductStatus.ON_SALE);
+    }
+
+    private Product findProduct(Long productId) {
+        return productRepository.findById(productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
     }
 }
