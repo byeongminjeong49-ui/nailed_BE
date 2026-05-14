@@ -14,7 +14,11 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
 
     boolean existsByEmail(String email);
 
+    boolean existsByNickname(String nickname);
+
     boolean existsByPhoneNumber(String phoneNumber);
+
+    Optional<Member> findByRefreshToken(String refreshToken);
 
     @Query("select coalesce(max(m.id), 0) from Member m")
     Long findMaxId();

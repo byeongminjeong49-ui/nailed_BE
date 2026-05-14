@@ -13,9 +13,12 @@ public class SignUpRequest {
     @NotBlank(message = "email is required.")
     private String email;
 
+    @NotBlank(message = "nickname is required.")
+    private String nickname;
+
     @NotBlank(message = "password is required.")
     private String password;
 
-    @NotBlank(message = "phoneNumber is required.")
-    private String phoneNumber;
+    @NotBlank(message = "verificationCode is required.")
+    private String verificationCode;
 }

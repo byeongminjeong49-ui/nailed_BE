@@ -42,8 +42,11 @@ public class Member extends SoftDeleteEntity {
     @Column(nullable = false, length = 30)
     private String nickname;
 
-    @Column(name = "phone_number", nullable = false, unique = true, length = 20)
+    @Column(name = "phone_number", unique = true, length = 20)
     private String phoneNumber;
+
+    @Column(name = "refresh_token", length = 1000)
+    private String refreshToken;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -56,22 +59,23 @@ public class Member extends SoftDeleteEntity {
     //--- 생성 메서드 ------------------------------------------
 
     @Builder
-    private Member(Long id, String email, String password, String phoneNumber,
+    private Member(Long id, String email, String nickname, String password, String phoneNumber,
                    Role role, MemberStatus memberStatus) {
         this.id = id;
         this.email = email;
         this.password = password;
-        this.nickname = createNickname(email);
+        this.nickname = normalizeNickname(nickname, email);
         this.phoneNumber = phoneNumber;
         this.role = role;
         this.memberStatus = memberStatus;
     }
 
     //=> 일반 회원 생성
-    public static Member createUser(Long id, String email, String password, String phoneNumber) {
+    public static Member createUser(Long id, String email, String nickname, String password, String phoneNumber) {
         return Member.builder()
                 .id(id)
                 .email(email)
+                .nickname(nickname)
                 .password(password)
                 .phoneNumber(phoneNumber)
                 .role(Role.ROLE_USER)
@@ -83,6 +87,10 @@ public class Member extends SoftDeleteEntity {
 
     public void changePassword(String password) {
         this.password = password;
+    }
+
+    public void changeRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 
     public void changeNickname(String nickname) {
@@ -116,7 +124,12 @@ public class Member extends SoftDeleteEntity {
 
     //--- 내부 메서드 ------------------------------------------
 
-    private static String createNickname(String email) {
+    private static String normalizeNickname(String nickname, String email) {
+        if (nickname != null && !nickname.trim().isBlank()) {
+            String trimmed = nickname.trim();
+            return trimmed.length() > 30 ? trimmed.substring(0, 30) : trimmed;
+        }
+
         String prefix = email == null ? "user" : email.split("@")[0];
         String normalized = prefix.replaceAll("[^A-Za-z0-9가-힣]", "");
         if (normalized.isBlank()) normalized = "user";
