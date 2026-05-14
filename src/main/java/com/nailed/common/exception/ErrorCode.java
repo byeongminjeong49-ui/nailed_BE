@@ -77,7 +77,19 @@ public enum ErrorCode {
     // ─────────────────────────────────────────────────────────────────
     REPORT_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "R001", "존재하지 않는 신고입니다."),
     REPORT_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "R002", "이미 신고한 대상입니다."),
-    SELF_REPORT_NOT_ALLOWED             (HttpStatus.BAD_REQUEST,            "R003", "본인은 신고할 수 없습니다.");
+    SELF_REPORT_NOT_ALLOWED             (HttpStatus.BAD_REQUEST,            "R003", "본인은 신고할 수 없습니다."),
+
+    // ─────────────────────────────────────────────────────────────────
+    // V : Review
+    // ─────────────────────────────────────────────────────────────────
+    REVIEW_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "V001", "존재하지 않는 리뷰입니다."),
+    REVIEW_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "V002", "이미 리뷰를 작성한 주문입니다."),
+
+    // ─────────────────────────────────────────────────────────────────
+    // W : Wishlist
+    // ─────────────────────────────────────────────────────────────────
+    WISHLIST_ALREADY_EXISTS             (HttpStatus.CONFLICT,               "W001", "이미 찜한 상품입니다."),
+    WISHLIST_NOT_FOUND                  (HttpStatus.NOT_FOUND,              "W002", "찜 목록에 없는 상품입니다.");
 
     private final HttpStatus httpStatus;
     private final String code;
