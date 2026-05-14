@@ -10,17 +10,17 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity // 데이터베이스 테이블과 연결되는 엔티티라고 JPA에게 알려줌
-@Table(name = "products") // products라는 이름의 테이블과 매핑된다고 지정
-@Getter // 든 필드의 getter 메서드를 자동 생성 ex) getProductId(), getTitle()
-@NoArgsConstructor // 매개변수 없는 기본 생성자를 자동 생성
+@Entity
+@Table(name = "products")
+@Getter
+@NoArgsConstructor
 public class Product extends SoftDeleteEntity {
 
-    @Id // 테이블의 기본 키(primary key) 지정
-    @GeneratedValue(strategy = GenerationType.IDENTITY) //데이터베이스가 자동으로 ID를 생성 (AUTO_INCREMENT). 상품 등록 시 ID는 자동으로 1씩 증가
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long productId;
 
-    private String sellerId;
+    private Long sellerId;
     private String title;
     private int price;
     private String description;
@@ -32,7 +32,13 @@ public class Product extends SoftDeleteEntity {
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
-    public Product(String sellerId, String title, int price, String description,
+    @Column(nullable = false)
+    private int viewCount = 0;
+
+    @Column(nullable = false)
+    private int wishlistCount = 0;
+
+    public Product(Long sellerId, String title, int price, String description,
                    ProductCondition conditionCode, CategoryCode categoryCode, String imageUrl) {
         this.sellerId = sellerId;
         this.title = title;
@@ -54,10 +60,30 @@ public class Product extends SoftDeleteEntity {
         this.imageUrl = imageUrl;
     }
 
-    public void delete() {
+    public void incrementViewCount() {
+        this.viewCount++;
+    }
+
+    public void incrementWishlistCount() {
+        this.wishlistCount++;
+    }
+
+    public void decrementWishlistCount() {
+        if (this.wishlistCount > 0) this.wishlistCount--;
+    }
+
+    public void changeStatus(ProductStatus newStatus) {
+        this.status = newStatus;
+    }
+
+    public void validateNotDeleted() {
         if (this.status == ProductStatus.DELETED) {
             throw new CustomException(ErrorCode.PRODUCT_DELETED);
         }
+    }
+
+    public void delete() {
+        validateNotDeleted();
         this.status = ProductStatus.DELETED;
         super.softDelete();
     }
