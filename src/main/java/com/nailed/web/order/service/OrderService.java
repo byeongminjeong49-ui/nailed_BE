@@ -17,8 +17,8 @@ import com.nailed.web.order.repository.OrderCancelRequestRepository;
 import com.nailed.web.order.repository.OrderRepository;
 import com.nailed.web.payment.service.PaymentService;
 import com.nailed.web.settlement.service.SettlementService;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class OrderService {
 
     private final OrderRepository              orderRepository;
@@ -42,7 +41,26 @@ public class OrderService {
     private final PaymentService               paymentService;
     private final ProductCommandPort           productCommandPort;
     private final DeliveryTracker              deliveryTracker;
-    private final MemberQueryPort              memberQueryPort;   // 닉네임 배치 조회용
+    private final MemberQueryPort              memberQueryPort;
+
+    public OrderService(
+            OrderRepository orderRepository,
+            DeliveryRepository deliveryRepository,
+            OrderCancelRequestRepository cancelRequestRepository,
+            SettlementService settlementService,
+            PaymentService paymentService,
+            @Qualifier("orderProductCommandPortImpl") ProductCommandPort productCommandPort,
+            DeliveryTracker deliveryTracker,
+            MemberQueryPort memberQueryPort) {
+        this.orderRepository         = orderRepository;
+        this.deliveryRepository      = deliveryRepository;
+        this.cancelRequestRepository = cancelRequestRepository;
+        this.settlementService       = settlementService;
+        this.paymentService          = paymentService;
+        this.productCommandPort      = productCommandPort;
+        this.deliveryTracker         = deliveryTracker;
+        this.memberQueryPort         = memberQueryPort;
+    }
 
     // ── 1. 주문 생성 (IA nld-403 비관적 락) ──────────────────────────────────────
     @Transactional
@@ -128,7 +146,6 @@ public class OrderService {
 
         order.complete();
 
-        // 정산 생성 실패 시에도 거래 완료 유지 (IA nld-605: REQUIRES_NEW 독립 트랜잭션)
         try {
             settlementService.createSettlement(
                     orderId,
@@ -195,7 +212,6 @@ public class OrderService {
 
         Page<Order> orders = fetchOrderPage(isBuyer, memberId, statuses, pageable);
 
-        // 상대방 ID 목록 추출 → 닉네임 배치 조회 1회 (N+1 방지)
         List<Long> counterpartIds = orders.getContent().stream()
                 .map(o -> isBuyer ? o.getSellerId() : o.getBuyerId())
                 .distinct()
@@ -208,12 +224,12 @@ public class OrderService {
             log.warn("상대방 닉네임 배치 조회 실패 — '알 수 없음' 으로 표시. error={}", e.getMessage());
         }
 
-        final boolean finalIsBuyer       = isBuyer;
+        final boolean finalIsBuyer        = isBuyer;
         final Map<Long, String> nicknames = nicknameMap;
 
         List<MyOrderResponse> content = orders.getContent().stream()
                 .map(o -> {
-                    Long cpId    = finalIsBuyer ? o.getSellerId() : o.getBuyerId();
+                    Long cpId     = finalIsBuyer ? o.getSellerId() : o.getBuyerId();
                     String cpNick = nicknames.getOrDefault(cpId, "알 수 없음");
                     return new MyOrderResponse(o, finalIsBuyer, cpNick);
                 })
