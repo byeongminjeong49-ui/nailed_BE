@@ -6,8 +6,8 @@ import com.nailed.web.settlement.dto.response.AdminSettlementResponse;
 import com.nailed.web.settlement.dto.response.SettlementResponse;
 import com.nailed.web.settlement.entity.Settlement;
 import com.nailed.web.settlement.repository.SettlementRepository;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -22,19 +22,21 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SettlementService {
 
     private final SettlementRepository settlementRepository;
     private final MemberQueryPort      memberQueryPort;
-    private final ProductQueryPort     productQueryPort;   // 상품명 스냅샷 조회용
+    private final ProductQueryPort     productQueryPort;
 
-    /**
-     * 구매 확정 시 정산 레코드 자동 생성 (IA nld-605)
-     *
-     * REQUIRES_NEW: OrderService 트랜잭션과 독립 실행.
-     * 정산 저장 실패 시에도 거래 완료(order.complete())는 롤백되지 않음.
-     */
+    public SettlementService(
+            SettlementRepository settlementRepository,
+            MemberQueryPort memberQueryPort,
+            @Qualifier("settlementProductQueryPortImpl") ProductQueryPort productQueryPort) {
+        this.settlementRepository = settlementRepository;
+        this.memberQueryPort = memberQueryPort;
+        this.productQueryPort = productQueryPort;
+    }
+
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void createSettlement(Long orderId, Long productId, Long sellerId, Integer orderAmount) {
 
@@ -43,7 +45,6 @@ public class SettlementService {
             return;
         }
 
-        // 상품명 스냅샷 (IA nld-906: 정산 카드 "상품명") — 계좌 스냅샷과 동일한 패턴
         String productName = null;
         try {
             productName = productQueryPort.getProductName(productId);
@@ -51,7 +52,6 @@ public class SettlementService {
             log.warn("상품명 조회 실패 — null 로 저장. productId={}, error={}", productId, e.getMessage());
         }
 
-        // 판매자 계좌 스냅샷 (IA nld-605 / nld-906)
         String accountSnapshot = null;
         try {
             MemberQueryPort.AccountInfo account = memberQueryPort.getSellerAccount(sellerId);
@@ -70,9 +70,6 @@ public class SettlementService {
                 .build());
     }
 
-    /**
-     * 정산 취소 — 거래 취소(nld-606) 연동: PENDING → CANCELLED
-     */
     @Transactional
     public void cancelSettlement(Long orderId) {
         settlementRepository.findByOrderId(orderId).ifPresent(s -> {
@@ -84,7 +81,6 @@ public class SettlementService {
         });
     }
 
-    // ── 마이페이지: 판매자 정산 내역 (IA nld-906) ────────────────────────────────
     public Page<SettlementResponse> getMySettlements(Long sellerId, String status, Pageable pageable) {
         if (status != null && !status.isBlank()) {
             return settlementRepository
@@ -96,7 +92,6 @@ public class SettlementService {
                 .map(SettlementResponse::new);
     }
 
-    // ── 관리자: 정산 목록 다중 조건 조회 (IA nld-1110) ──────────────────────────
     public Page<AdminSettlementResponse> getSettlementsForAdmin(
             String status, Long sellerId, LocalDateTime from, LocalDateTime to, Pageable pageable) {
 
@@ -121,7 +116,6 @@ public class SettlementService {
         return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
-    // ── 관리자: 단건 정산 완료 처리 (IA nld-1110) ───────────────────────────────
     @Transactional
     public void completeSettlement(Long settlementId) {
         Settlement s = settlementRepository.findById(settlementId)
@@ -131,7 +125,6 @@ public class SettlementService {
         s.complete();
     }
 
-    // ── 관리자: 다건 일괄 정산 완료 처리 (IA nld-1110) ──────────────────────────
     @Transactional
     public void completeSettlements(List<Long> settlementIds) {
         settlementIds.forEach(this::completeSettlement);
