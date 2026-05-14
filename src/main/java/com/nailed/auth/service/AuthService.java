@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -33,26 +34,62 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final EmailLoginVerificationRepository emailLoginVerificationRepository;
+    private final ResendEmailService resendEmailService;
     private final TokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
+    private final SecureRandom secureRandom = new SecureRandom();
 
-    //1. 회원가입 이메일 인증 요청(mock)
+    //1. 회원가입 이메일 인증 요청
+    @Transactional
     public Map<String, Object> requestEmailVerification(EmailVerificationRequest request) {
         String email = normalizeEmail(request.getEmail());
-        log.info("** 회원가입 이메일 인증 요청(mock) => " + email);
+
+        if (memberRepository.existsByEmail(email)) {
+            throw new RuntimeException("이미 사용 중인 이메일입니다.");
+        }
+
+        String code = createNumericCode(6);
+        emailLoginVerificationRepository.save(EmailLoginVerification.issue(email, code, 3));
+        resendEmailService.sendSignupVerificationCode(email, code);
+        log.info("** 회원가입 이메일 인증 코드 발급 => " + email);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("alertMessage", "이메일 인증번호가 발급되었습니다.");
+        result.put("alertMessage", "이메일로 인증번호가 발송되었습니다.");
         return result;
     }
 
-    //2. 회원가입 이메일 인증 확인(mock)
+    //2. 회원가입 이메일 인증 확인
+    @Transactional
     public Map<String, Object> confirmEmailVerification(EmailVerificationConfirmRequest request) {
         String email = normalizeEmail(request.getEmail());
-        log.info("** 회원가입 이메일 인증 완료(mock) => " + email);
+
+        EmailLoginVerification verification = emailLoginVerificationRepository
+                .findTopByEmailOrderByIdDesc(email)
+                .orElseThrow(() -> new RuntimeException("이메일 인증번호 발송이 필요합니다."));
+
+        if (!verification.canVerify(request.getVerificationCode())) {
+            throw new RuntimeException("인증번호가 올바르지 않거나 만료되었습니다.");
+        }
+
+        verification.complete();
+        log.info("** 회원가입 이메일 인증 완료 => " + email);
 
         Map<String, Object> result = new HashMap<>();
         result.put("alertMessage", "이메일 인증이 완료되었습니다.");
+        return result;
+    }
+
+    public Map<String, Object> checkEmail(String email) {
+        String normalizedEmail = normalizeEmail(email);
+        Map<String, Object> result = new HashMap<>();
+        result.put("available", !memberRepository.existsByEmail(normalizedEmail));
+        return result;
+    }
+
+    public Map<String, Object> checkNickname(String nickname) {
+        String normalizedNickname = normalizeNickname(nickname);
+        Map<String, Object> result = new HashMap<>();
+        result.put("available", !memberRepository.existsByNickname(normalizedNickname));
         return result;
     }
 
@@ -60,21 +97,34 @@ public class AuthService {
     @Transactional
     public Map<String, Object> signUp(SignUpRequest request) {
         String email = normalizeEmail(request.getEmail());
-        String phoneNumber = normalizePhoneNumber(request.getPhoneNumber());
+        String nickname = normalizeNickname(request.getNickname());
 
         //=> 이메일 중복 확인
         if (memberRepository.existsByEmail(email)) {
             throw new RuntimeException("이미 사용 중인 이메일입니다.");
         }
-        //=> 전화번호 중복 확인
-        if (memberRepository.existsByPhoneNumber(phoneNumber)) {
-            throw new RuntimeException("이미 가입된 전화번호입니다.");
+        if (memberRepository.existsByNickname(nickname)) {
+            throw new RuntimeException("이미 사용 중인 닉네임입니다.");
         }
+
+        EmailLoginVerification verification = emailLoginVerificationRepository
+                .findTopByEmailOrderByIdDesc(email)
+                .orElseThrow(() -> new RuntimeException("이메일 인증이 필요합니다."));
+
+        if (!verification.canVerify(request.getVerificationCode()) && !verification.isVerifiedAndValid()) {
+            throw new RuntimeException("이메일 인증이 필요합니다.");
+        }
+
+        if (!verification.isVerifiedAndValid()) {
+            verification.complete();
+        }
+
         Member member = Member.createUser(
                 nextMemberId(),
                 email,
+                nickname,
                 passwordEncoder.encode(request.getPassword()),
-                phoneNumber
+                null
         );
         memberRepository.save(member);
         log.info("** 회원가입 성공 => " + email);
@@ -86,6 +136,7 @@ public class AuthService {
     }
 
     //4. 일반 로그인 (이메일 + 비밀번호)
+    @Transactional
     public Map<String, Object> login(LoginRequest request) {
         String email = normalizeEmail(request.getEmail());
 
@@ -110,14 +161,13 @@ public class AuthService {
         memberRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("가입된 회원을 찾을 수 없습니다."));
 
-        String code = createCode(6);
+        String code = createNumericCode(6);
         emailLoginVerificationRepository.save(EmailLoginVerification.issue(email, code));
+        resendEmailService.sendLoginCode(email, code);
         log.info("** 이메일 로그인 코드 발급 => " + email + ", code=" + code);
 
-        //=> 실제 서비스: 이메일 발송 (지금은 코드 직접 반환)
         Map<String, Object> result = new HashMap<>();
         result.put("alertMessage", "이메일 로그인 인증번호가 발급되었습니다.");
-        result.put("value", code); // 개발환경에서 코드 직접 확인
         return result;
     }
 
@@ -143,6 +193,7 @@ public class AuthService {
     }
 
     //7. Token 갱신
+    @Transactional
     public Map<String, Object> refresh(String refreshToken) {
         Map<String, Object> claims = tokenProvider.validateToken(refreshToken);
         Long memberId = tokenProvider.getMemberId(refreshToken);
@@ -150,22 +201,38 @@ public class AuthService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new RuntimeException("회원을 찾을 수 없습니다."));
 
+        if (member.getRefreshToken() == null || !member.getRefreshToken().equals(refreshToken)) {
+            member.changeRefreshToken(null);
+            throw new RuntimeException("Refresh Token이 유효하지 않습니다. 다시 로그인해주세요.");
+        }
+
         return createTokenResponse(member);
     }
 
-    //8. 비밀번호 찾기 (임시 비밀번호 발급)
+    @Transactional
+    public void logout(String refreshToken) {
+        if (refreshToken == null || refreshToken.isBlank()) {
+            return;
+        }
+
+        memberRepository.findByRefreshToken(refreshToken)
+                .ifPresent(member -> member.changeRefreshToken(null));
+    }
+
+    //8. 비밀번호 재설정 (임시 비밀번호 이메일 발송)
     @Transactional
     public Map<String, Object> findPassword(PasswordFindRequest request) {
-        Member member = memberRepository.findByEmail(normalizeEmail(request.getEmail()))
-                .orElseThrow(() -> new RuntimeException("가입된 회원을 찾을 수 없습니다."));
+        String email = normalizeEmail(request.getEmail());
+        memberRepository.findByEmail(email).ifPresent(member -> {
+            String tempPassword = createTemporaryPassword();
+            member.changePassword(passwordEncoder.encode(tempPassword));
+            resendEmailService.sendTemporaryPassword(email, tempPassword);
+            log.info("** 임시 비밀번호 발급 => " + email);
+        });
 
-        String tempPassword = createCode(8);
-        member.changePassword(passwordEncoder.encode(tempPassword));
-        log.info("** 임시 비밀번호 발급 => " + request.getEmail());
 
         Map<String, Object> result = new HashMap<>();
-        result.put("alertMessage", "임시 비밀번호가 발급되었습니다.");
-        result.put("value", tempPassword);
+        result.put("alertMessage", "이메일로 임시 비밀번호가 발송되었습니다.");
         return result;
     }
 
@@ -178,29 +245,42 @@ public class AuthService {
 
     //=> 로그인 성공 시 토큰 응답 생성
     private Map<String, Object> createTokenResponse(Member member) {
+        String accessToken = tokenProvider.createToken(member.claimList(), 30);
+        String refreshToken = tokenProvider.createToken(member.refreshClaimList(), 7 * 24 * 60);
+        member.changeRefreshToken(refreshToken);
+
         Map<String, Object> result = new HashMap<>();
         result.put("memberId", member.getId());
         result.put("email", member.getEmail());
-        result.put("accessToken",  tokenProvider.createToken(member.claimList(), 24 * 60)); // 1일
-        result.put("refreshToken", tokenProvider.createToken(member.refreshClaimList(), 7 * 24 * 60)); // 7일
+        result.put("nickname", member.getNickname());
+        result.put("accessToken", accessToken);
+        result.put("refreshToken", refreshToken);
         return result;
     }
 
     //=> 랜덤 숫자 코드 생성
-    private String createCode(int length) {
+    private String createNumericCode(int length) {
         StringBuilder code = new StringBuilder();
         for (int i = 0; i < length; i++) {
-            code.append((int) (Math.random() * 10));
+            code.append(secureRandom.nextInt(10));
         }
         return code.toString();
+    }
+
+    private String createTemporaryPassword() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+        StringBuilder password = new StringBuilder();
+        for (int i = 0; i < 10; i++) {
+            password.append(chars.charAt(secureRandom.nextInt(chars.length())));
+        }
+        return password.toString();
     }
 
     private String normalizeEmail(String email) {
         return email.trim().toLowerCase();
     }
 
-    private String normalizePhoneNumber(String phoneNumber) {
-        return phoneNumber.replaceAll("[^0-9]", "");
+    private String normalizeNickname(String nickname) {
+        return nickname.trim();
     }
-
 } //class
