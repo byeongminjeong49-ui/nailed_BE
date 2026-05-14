@@ -19,16 +19,19 @@ public class Product extends SoftDeleteEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long productId;
-
     private Long sellerId;
     private String title;
     private int price;
     private String description;
+
     @Enumerated(EnumType.STRING)
     private ProductCondition conditionCode;
+
     @Enumerated(EnumType.STRING)
     private CategoryCode categoryCode;
+
     private String imageUrl;
+
     @Enumerated(EnumType.STRING)
     private ProductStatus status;
 
@@ -60,7 +63,7 @@ public class Product extends SoftDeleteEntity {
         this.imageUrl = imageUrl;
     }
 
-<<<<<<< HEAD
+    // HEAD 쪽 메서드
     public void markAsSoldOut() {
         this.status = ProductStatus.SOLD_OUT;
     }
@@ -71,8 +74,7 @@ public class Product extends SoftDeleteEntity {
         }
     }
 
-    public void delete() {
-=======
+    // main 쪽 메서드
     public void incrementViewCount() {
         this.viewCount++;
     }
@@ -90,7 +92,6 @@ public class Product extends SoftDeleteEntity {
     }
 
     public void validateNotDeleted() {
->>>>>>> main
         if (this.status == ProductStatus.DELETED) {
             throw new CustomException(ErrorCode.PRODUCT_DELETED);
         }
