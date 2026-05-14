@@ -20,11 +20,11 @@ public class KakaoPayClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${kakao.pay.secret-key}") private String secretKey;
-    @Value("${kakao.pay.cid}")        private String cid;
-    @Value("${kakao.pay.approval-url}") private String approvalUrl;
-    @Value("${kakao.pay.cancel-url}")   private String cancelUrl;
-    @Value("${kakao.pay.fail-url}")     private String failUrl;
+    @Value("${kakao.pay.secret-key:}") private String secretKey;
+    @Value("${kakao.pay.cid:}")        private String cid;
+    @Value("${kakao.pay.approval-url:}") private String approvalUrl;
+    @Value("${kakao.pay.cancel-url:}")   private String cancelUrl;
+    @Value("${kakao.pay.fail-url:}")     private String failUrl;
 
     private static final String READY_URL   = "https://kapi.kakao.com/v1/payment/ready";
     private static final String APPROVE_URL = "https://kapi.kakao.com/v1/payment/approve";

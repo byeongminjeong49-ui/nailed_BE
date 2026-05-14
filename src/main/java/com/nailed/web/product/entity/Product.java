@@ -54,6 +54,16 @@ public class Product extends SoftDeleteEntity {
         this.imageUrl = imageUrl;
     }
 
+    public void markAsSoldOut() {
+        this.status = ProductStatus.SOLD_OUT;
+    }
+
+    public void restoreToOnSale() {
+        if (this.status != ProductStatus.DELETED) {
+            this.status = ProductStatus.ON_SALE;
+        }
+    }
+
     public void delete() {
         if (this.status == ProductStatus.DELETED) {
             throw new CustomException(ErrorCode.PRODUCT_DELETED);
