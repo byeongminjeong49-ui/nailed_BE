@@ -1,128 +1,117 @@
 package com.nailed.web.order.controller;
 
-import com.nailed.web.order.dto.OrderDTO;
-import com.nailed.web.order.dto.OrderHistoryDTO;
-import com.nailed.web.order.dto.ShippingDTO;
-import com.nailed.web.order.dto.TrackingDTO;
+import com.nailed.common.response.ApiResponse;
+import com.nailed.common.response.PageResponse;
+import com.nailed.common.util.SecurityUtil;
+import com.nailed.web.order.dto.request.CancelRequest;
+import com.nailed.web.order.dto.request.OrderCreateRequest;
+import com.nailed.web.order.dto.request.ShippingRequest;
+import com.nailed.web.order.dto.response.MyOrderResponse;
+import com.nailed.web.order.dto.response.OrderDetailResponse;
+import com.nailed.web.order.dto.response.TrackingResponse;
 import com.nailed.web.order.service.OrderService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
+@RequiredArgsConstructor
 public class OrderController {
 
-	@Autowired(required = false)
-	OrderService orderService;
+    private final OrderService orderService;
 
-	//** 주문 생성 - POST /api/orders
-	@PostMapping("/api/orders")
-	public ResponseEntity<OrderDTO> createOrder(
-			@RequestParam Long productId,
-			@RequestParam Long buyerId,
-			@RequestParam Long sellerId,
-			@RequestParam Integer price) {
-		OrderDTO result = orderService.createOrder(productId, buyerId, sellerId, price);
-		return ResponseEntity.ok(result);
-	}
+    // 1. 주문 생성
+    @PostMapping("/api/orders")
+    public ResponseEntity<ApiResponse<OrderDetailResponse>> createOrder(@Valid @RequestBody OrderCreateRequest request) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(orderService.createOrder(memberId, request)));
+    }
 
-	//** 주문 단건 조회 - GET /api/orders/{orderId}
-	@GetMapping("/api/orders/{orderId}")
-	public ResponseEntity<OrderDTO> getOrder(
-			@PathVariable Long orderId,
-			@RequestParam Long memberId) {
-		OrderDTO result = orderService.getOrder(orderId, memberId);
-		return ResponseEntity.ok(result);
-	}
+    // 2. 주문 상세 조회
+    @GetMapping("/api/orders/{orderId}")
+    public ResponseEntity<ApiResponse<OrderDetailResponse>> getOrder(@PathVariable Long orderId) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(orderService.getOrder(orderId, memberId)));
+    }
 
-	//** 거래 내역 (구매/판매 통합) - GET /api/members/me/orders?type=BUY or SELL
-	@GetMapping("/api/members/me/orders")
-	public ResponseEntity<Page<OrderDTO>> getMyOrders(
-			@RequestParam Long memberId,
-			@RequestParam(defaultValue = "BUY") String type,
-			@RequestParam(required = false) String status,
-			@PageableDefault(size = 20) Pageable pageable) {
-		Page<OrderDTO> result = orderService.getMyOrders(memberId, type, status, pageable);
-		return ResponseEntity.ok(result);
-	}
+    // 3. 거래 타임라인 조회
+    @GetMapping("/api/orders/{orderId}/history")
+    public ResponseEntity<ApiResponse<OrderDetailResponse>> getHistory(@PathVariable Long orderId) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(orderService.getHistory(orderId, memberId)));
+    }
 
-	//** 배송 추적 (Mock) - GET /api/orders/{orderId}/tracking
-	//=> 운송장 등록 시각 기준 경과 시간으로 단계 자동 계산 (집화완료 → 이동중 → 배달완료)
-	@GetMapping("/api/orders/{orderId}/tracking")
-	public ResponseEntity<TrackingDTO> getTracking(
-			@PathVariable Long orderId,
-			@RequestParam Long memberId) {
-		TrackingDTO result = orderService.getTracking(orderId, memberId);
-		return ResponseEntity.ok(result);
-	}
+    // 4. 운송장 입력 (판매자)
+    @PostMapping("/api/orders/{orderId}/shipping")
+    public ResponseEntity<ApiResponse<Void>> inputShipping(@PathVariable Long orderId,
+                                                           @Valid @RequestBody ShippingRequest request) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        orderService.inputShipping(orderId, memberId, request);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 
-	//** 거래 상태 이력 - GET /api/orders/{orderId}/history
-	//=> orders 단일 테이블 기반, 단계별 타임스탬프로 이력 구성
-	@GetMapping("/api/orders/{orderId}/history")
-	public ResponseEntity<List<OrderHistoryDTO>> getOrderHistory(
-			@PathVariable Long orderId,
-			@RequestParam Long memberId) {
-		List<OrderHistoryDTO> result = orderService.getOrderHistory(orderId, memberId);
-		return ResponseEntity.ok(result);
-	}
+    // 5. 배송 추적
+    @GetMapping("/api/orders/{orderId}/tracking")
+    public ResponseEntity<ApiResponse<TrackingResponse>> getTracking(@PathVariable Long orderId) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(orderService.getTracking(orderId, memberId)));
+    }
 
-	//** 운송장 입력 (판매자) - POST /api/orders/{orderId}/shipping
-	@PostMapping("/api/orders/{orderId}/shipping")
-	public ResponseEntity<String> enterShipping(
-			@PathVariable Long orderId,
-			@RequestParam Long sellerId,
-			@RequestBody ShippingDTO shippingDTO) {
-		orderService.enterShipping(orderId, sellerId, shippingDTO.getCourier(), shippingDTO.getTrackingNumber());
-		return ResponseEntity.ok("운송장이 입력되었습니다.");
-	}
+    // 6. 구매 확정 (구매자)
+    @PostMapping("/api/orders/{orderId}/confirm")
+    public ResponseEntity<ApiResponse<Void>> confirmPurchase(@PathVariable Long orderId) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        orderService.confirmPurchase(orderId, memberId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 
-	//** 배송 완료 처리 - PATCH /api/orders/{orderId}/delivered
-	@PatchMapping("/api/orders/{orderId}/delivered")
-	public ResponseEntity<String> completeDelivery(@PathVariable Long orderId) {
-		orderService.completeDelivery(orderId);
-		return ResponseEntity.ok("배송이 완료되었습니다.");
-	}
+    // 7. 취소 요청
+    @PostMapping("/api/orders/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<Void>> requestCancel(@PathVariable Long orderId,
+                                                           @Valid @RequestBody CancelRequest request) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        orderService.requestCancel(orderId, memberId, request);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 
-	//** 구매 확정 - POST /api/orders/{orderId}/confirm
-	@PostMapping("/api/orders/{orderId}/confirm")
-	public ResponseEntity<String> confirmPurchase(
-			@PathVariable Long orderId,
-			@RequestParam Long buyerId) {
-		orderService.confirmPurchase(orderId, buyerId);
-		return ResponseEntity.ok("구매가 확정되었습니다.");
-	}
+    // 8. 취소 응답 (accept=true: 승인, false: 거절)
+    @PatchMapping("/api/orders/{orderId}/cancel")
+    public ResponseEntity<ApiResponse<Void>> respondCancel(@PathVariable Long orderId,
+                                                           @RequestParam boolean accept) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        orderService.respondCancel(orderId, memberId, accept);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
 
-	//** 취소 요청 - POST /api/orders/{orderId}/cancel
-	@PostMapping("/api/orders/{orderId}/cancel")
-	public ResponseEntity<String> requestCancel(
-			@PathVariable Long orderId,
-			@RequestParam Long buyerId) {
-		orderService.requestCancel(orderId, buyerId);
-		return ResponseEntity.ok("취소 요청이 완료되었습니다.");
-	}
+    // 9. 마이페이지 거래 내역 (type=BUYER/SELLER, statusGroup=거래중/완료/취소)
+    @GetMapping("/api/members/me/orders")
+    public ResponseEntity<ApiResponse<PageResponse<MyOrderResponse>>> getMyOrders(
+            @RequestParam(defaultValue = "BUYER") String type,
+            @RequestParam(required = false) String statusGroup,
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(
+                PageResponse.of(orderService.getMyOrders(memberId, type, statusGroup, pageable))));
+    }
 
-	//** 취소 수락 - PATCH /api/orders/{orderId}/cancel
-	@PatchMapping("/api/orders/{orderId}/cancel")
-	public ResponseEntity<String> acceptCancel(
-			@PathVariable Long orderId,
-			@RequestParam Long sellerId) {
-		orderService.acceptCancel(orderId, sellerId);
-		return ResponseEntity.ok("취소 수락이 완료되었습니다.");
-	}
+    // 10. 구매 목록
+    @GetMapping("/api/orders/purchases")
+    public ResponseEntity<ApiResponse<PageResponse<MyOrderResponse>>> getMyPurchases(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(
+                PageResponse.of(orderService.getMyOrders(memberId, "BUYER", null, pageable))));
+    }
 
-
-	//** 취소 거절 (판매자) - DELETE /api/orders/{orderId}/cancel
-	@DeleteMapping("/api/orders/{orderId}/cancel")
-	public ResponseEntity<String> rejectCancel(
-			@PathVariable Long orderId,
-			@RequestParam Long sellerId) {
-		orderService.rejectCancel(orderId, sellerId);
-		return ResponseEntity.ok("취소가 거절되었습니다.");
-	}
-
-}//class
+    // 11. 판매 목록
+    @GetMapping("/api/orders/sales")
+    public ResponseEntity<ApiResponse<PageResponse<MyOrderResponse>>> getMySales(
+            @PageableDefault(size = 20) Pageable pageable) {
+        Long memberId = SecurityUtil.getCurrentMemberId();
+        return ResponseEntity.ok(ApiResponse.success(
+                PageResponse.of(orderService.getMyOrders(memberId, "SELLER", null, pageable))));
+    }
+}
