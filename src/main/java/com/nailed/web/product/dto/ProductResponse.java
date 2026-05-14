@@ -6,10 +6,9 @@ import java.time.LocalDateTime;
 
 public class ProductResponse {
 
-    // 상품 상세 화면
     public record Detail(
             Long productId,
-            String sellerId,
+            Long sellerId,
             String title,
             int price,
             String description,
@@ -17,18 +16,20 @@ public class ProductResponse {
             String categoryCode,
             String status,
             String imageUrl,
+            int viewCount,
+            int wishlistCount,
             LocalDateTime createdAt
     ) {
         public static Detail from(Product p) {
             return new Detail(
                     p.getProductId(), p.getSellerId(), p.getTitle(), p.getPrice(),
                     p.getDescription(), p.getConditionCode().name(), p.getCategoryCode().name(),
-                    p.getStatus().name(), p.getImageUrl(), p.getCreatedAt()
+                    p.getStatus().name(), p.getImageUrl(),
+                    p.getViewCount(), p.getWishlistCount(), p.getCreatedAt()
             );
         }
     }
 
-    // 상품 목록 화면 (요약 정보만)
     public record Summary(
             Long productId,
             String title,
@@ -38,6 +39,29 @@ public class ProductResponse {
     ) {
         public static Summary from(Product p) {
             return new Summary(p.getProductId(), p.getTitle(), p.getPrice(), p.getImageUrl(), p.getCreatedAt());
+        }
+    }
+
+    public record Card(
+            Long productId,
+            Long sellerId,
+            String title,
+            int price,
+            String conditionCode,
+            String categoryCode,
+            String status,
+            String imageUrl,
+            int viewCount,
+            int wishlistCount,
+            LocalDateTime createdAt
+    ) {
+        public static Card from(Product p) {
+            return new Card(
+                    p.getProductId(), p.getSellerId(), p.getTitle(), p.getPrice(),
+                    p.getConditionCode().name(), p.getCategoryCode().name(),
+                    p.getStatus().name(), p.getImageUrl(),
+                    p.getViewCount(), p.getWishlistCount(), p.getCreatedAt()
+            );
         }
     }
 }

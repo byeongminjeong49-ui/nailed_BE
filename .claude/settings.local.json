@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Expand-Archive -Path \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\myBack.zip\" -DestinationPath \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\myBack_extracted\" -Force)",
+      "Bash(Write-Host \"Done\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\Administrator\\\\Desktop\\\\myBack_extracted\" -Force | Select-Object Name, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Format-Table -AutoSize)",
+      "PowerShell(head -50)",
+      "Read(//c/Users/Administrator/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/53f0430c-59e5-4516-a32f-2aa001a7de3c/a9d23939-25bc-4832-9cb7-4f95b53c4334/skills/xlsx/**)",
+      "Bash(python -c ' *)",
+      "PowerShell(python -c \"import pandas as pd; all_sheets = pd.read_excel\\('C:/Users/Administrator/Desktop/����_Nailed_IA.xlsx', sheet_name=None\\); [print\\(f'=== {k} ===\\\\n{v.to_string\\(\\)}\\\\n'\\) for k,v in all_sheets.items\\(\\)]\" 2>&1)",
+      "Bash(Get-ChildItem -Path \"E:\\\\MTest\\\\myBack\\\\nailed_BE\" -Recurse -Filter \"*.java\")",
+      "Bash(Select-Object FullName)",
+      "Bash(cd /d E:\\\\MTest\\\\myBack\\\\nailed_BE)",
+      "Bash(mvn clean *)"
+    ]
+  }
+}
