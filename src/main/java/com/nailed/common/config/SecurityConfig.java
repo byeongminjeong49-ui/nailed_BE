@@ -58,6 +58,10 @@ public class SecurityConfig {
                         //=> 인증 없이 접근 가능한 경로
                         .requestMatchers(HttpMethod.POST,
                                 "/api/auth/signup",
+                                "/api/auth/send-verification",
+                                "/api/auth/verify-code",
+                                "/api/auth/signup/email-verification/request",
+                                "/api/auth/signup/email-verification/confirm",
                                 "/api/auth/signup/phone-verification/request",
                                 "/api/auth/signup/phone-verification/confirm",
                                 "/api/auth/login",
@@ -65,10 +69,13 @@ public class SecurityConfig {
                                 "/api/auth/email-login/request",
                                 "/api/auth/email-login/confirm",
                                 "/api/auth/logout",
+                                "/api/auth/password/reset",
                                 "/api/auth/password/find",
                                 "/api/auth/refresh"
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET,
+                                "/api/auth/check-email",
+                                "/api/auth/check-nickname",
                                 "/api/products",
                                 "/api/products/**"
                         ).permitAll()
