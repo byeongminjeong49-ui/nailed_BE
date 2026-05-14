@@ -22,4 +22,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     Page<Order> findByBuyerIdAndStatusInOrderByCreatedAtDesc(Long buyerId, List<OrderStatus> statuses, Pageable pageable);
     Page<Order> findBySellerIdAndStatusInOrderByCreatedAtDesc(Long sellerId, List<OrderStatus> statuses, Pageable pageable);
+
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.sellerId = :sellerId AND o.status IN :statuses")
+    long countBySellerIdAndStatusIn(@Param("sellerId") Long sellerId, @Param("statuses") List<OrderStatus> statuses);
 }

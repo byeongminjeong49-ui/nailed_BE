@@ -77,7 +77,11 @@ public class SecurityConfig {
                                 "/api/auth/check-email",
                                 "/api/auth/check-nickname",
                                 "/api/products",
-                                "/api/products/**"
+                                "/api/products/**",
+                                "/api/users/**"
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/products/*/view"
                         ).permitAll()
                         .requestMatchers(
                                 "/swagger-ui/**",
@@ -87,6 +91,7 @@ public class SecurityConfig {
 
                         //=> ADMIN Role 필요
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
 
                         //=> 나머지는 인증 필요
                         .anyRequest().authenticated()
