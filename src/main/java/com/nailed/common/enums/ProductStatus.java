@@ -6,9 +6,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum ProductStatus {
-    ON_SALE("On sale", "Product is on sale"),
-    SOLD_OUT("Sold out", "Product is sold out"),
-    DELETED("Deleted", "Product is deleted");
+
+    ON_SALE("판매중", "상품이 판매 중인 상태"),
+    SOLD_OUT("판매완료", "상품이 판매 완료된 상태"),
+    DELETED("삭제됨", "상품이 삭제된 상태");
 
     private final String label;
     private final String description;
