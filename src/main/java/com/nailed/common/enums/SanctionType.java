@@ -6,9 +6,10 @@ import lombok.RequiredArgsConstructor;
 @Getter
 @RequiredArgsConstructor
 public enum SanctionType {
-    WARNING("Warning", "Warning sanction"),
-    SUSPENSION("Suspension", "Temporary suspension"),
-    BAN("Ban", "Permanent ban");
+
+    WARNING("경고", "경고 처벌"),
+    SUSPENSION("정지", "일시 정지"),
+    BAN("차단", "영구 차단");
 
     private final String label;
     private final String description;
