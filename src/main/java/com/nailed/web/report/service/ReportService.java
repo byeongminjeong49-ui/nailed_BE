@@ -14,6 +14,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -25,14 +27,19 @@ public class ReportService {
     /**
      * 신고 접수
      * - 본인 신고 불가 (reporter == target 검증)
-     * - 중복 신고는 IA 기준 허용 (동일 대상 재신고 가능)
-     * - report_id: RPT_001 형태로 생성
+     * - 중복 신고 불가 (동일 신고자가 동일 대상 재신고 불가)
+     * - report_id: RPT_XXXXXXXX 형태 (UUID 앞 8자리, 동시 접수 시 충돌 없음)
      */
     @Transactional
     public ReportResponse.Detail submit(String reporterId, ReportRequest.Submit req) {
         // 본인 신고 불가
         if (reporterId.equals(req.targetMemberId())) {
             throw new CustomException(ErrorCode.SELF_REPORT_NOT_ALLOWED);
+        }
+
+        // 중복 신고 차단 (동일 신고자가 동일 대상을 이미 신고한 경우)
+        if (reportRepository.existsByReporter_MemberIdAndTargetMember_MemberId(reporterId, req.targetMemberId())) {
+            throw new CustomException(ErrorCode.REPORT_ALREADY_EXISTS);
         }
 
         Member reporter = findMember(reporterId);
@@ -62,13 +69,8 @@ public class ReportService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    /**
-     * 현재 최대 시퀀스 + 1로 RPT_XXX ID 생성
-     * 예: RPT_001 / RPT_002 / RPT_010
-     * 주의: 동시 접수 시 중복 가능성 있음 → 운영 환경에서는 DB 시퀀스 or UUID 전환 권장
-     */
+    // UUID 앞 8자리로 생성 → VARCHAR(20) 범위 내 (RPT_ 4자 + 8자 = 12자)
     private String generateReportId() {
-        long nextSeq = reportRepository.findMaxSequence() + 1;
-        return String.format("RPT_%03d", nextSeq);
+        return "RPT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
     }
 }

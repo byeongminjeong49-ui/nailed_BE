@@ -22,7 +22,7 @@ public enum OrderStatus {
     SHIPPING("배송중",      "운송장이 등록되어 배송 중인 상태"),
     DELIVERED("배송완료",   "상품이 배송 완료된 상태"),
     COMPLETED("구매확정",   "구매자가 거래를 완료한 상태 (정산 처리됨)"),
-    CANCELLED("취소됨",     "주문이 최종 취소된 상태");
+    CANCELLED("취소됨`",     "주문이 최종 취소된 상태");
 
     private final String label;
     private final String description;

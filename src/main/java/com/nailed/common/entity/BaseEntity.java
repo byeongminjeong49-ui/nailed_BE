@@ -15,7 +15,7 @@ import java.time.LocalDateTime;
  *
  * 대상 (DB 스키마 기준 3개 테이블):
  *   - members
- *   - products      (단, deleted_at 도 있으므로 SoftDeleteEntity 상속)
+ *   - products (단, deleted_at 도 있으므로 SoftDeleteEntity 상속)
  *   - orders
  *
  * 사용법: public class Order extends BaseEntity { ... }

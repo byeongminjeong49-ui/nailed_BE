@@ -65,7 +65,7 @@ public class Product extends SoftDeleteEntity {
     @Column(name = "size", length = 30)
     private String size;
 
-    // 판매 상태: ON_SALE / RESERVED / SOLD / DELETED
+    // 판매 상태: ON_SALE / SOLD / DELETED
     @Enumerated(EnumType.STRING)
     @Column(name = "product_status", length = 20, nullable = false)
     @Builder.Default
@@ -110,11 +110,6 @@ public class Product extends SoftDeleteEntity {
         }
     }
 
-    /** 구매 요청 → 예약중으로 전환 (동시 구매 방지 흐름에서 사용) */
-    public void reserve() {
-        this.productStatus = ProductStatus.RESERVED;
-    }
-
     /** 주문 취소 시 판매중으로 복원 */
     public void restore() {
         this.productStatus = ProductStatus.ON_SALE;
@@ -150,8 +145,4 @@ public class Product extends SoftDeleteEntity {
         this.hashtags = hashtags;
     }
 
-    /** 이미지 전체 교체 (수정 시 기존 이미지 삭제 후 재등록) */
-    public void clearImages() {
-        this.images.clear();
-    }
 }

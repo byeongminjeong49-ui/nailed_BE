@@ -1,5 +1,6 @@
 package com.nailed.web.product.service;
 
+import com.nailed.common.enums.OrderStatus;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.ProductStatus;
 import com.nailed.common.exception.CustomException;
@@ -34,6 +35,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -74,7 +76,7 @@ public class ProductService {
 
         // 5MB 초과 검증
         if (file.getSize() > 5L * 1024 * 1024) {
-            throw new CustomException(ErrorCode.PRODUCT_IMAGE_LIMIT_EXCEEDED);
+            throw new CustomException(ErrorCode.PRODUCT_IMAGE_SIZE_EXCEEDED);
         }
 
         try {
@@ -204,11 +206,6 @@ public class ProductService {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
 
-        // 거래 진행 중인 상품은 수정 불가
-        if (product.getProductStatus() == ProductStatus.RESERVED) {
-            throw new CustomException(ErrorCode.ORDER_INVALID_STATUS);
-        }
-
         ProductGroup category = findCategory(req.categoryId());
         ProductGroup brand = req.brandId() != null ? findBrand(req.brandId()) : null;
         ProductCondition condition = EnumUtil.parse(ProductCondition.class, req.conditionCode(), ErrorCode.INVALID_INPUT_VALUE);
@@ -216,9 +213,7 @@ public class ProductService {
         product.update(req.title(), category, brand, req.price(),
                 req.description(), condition, req.size(), req.hashtags());
 
-        // 이미지 전체 교체 (기존 삭제 후 재등록)
-        product.clearImages();
-        saveImages(product, req.imageUrls());
+        syncImages(product, req.imageUrls());
     }
 
     // ── 상품 삭제 (소프트) ────────────────────────────────────
@@ -228,22 +223,15 @@ public class ProductService {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
 
-        // 거래 진행 중(RESERVED)이면 삭제 불가
-        if (product.getProductStatus() == ProductStatus.RESERVED) {
-            throw new CustomException(ErrorCode.ORDER_INVALID_STATUS);
-        }
-
         product.delete(reason);
     }
 
     // ── 판매 상태 변경 ────────────────────────────────────────
 
     @Transactional
-    public void changeStatus(Long productId, String sellerId, String statusStr) {
+    public void changeStatus(Long productId, String sellerId, ProductStatus newStatus) {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
-
-        ProductStatus newStatus = EnumUtil.parse(ProductStatus.class, statusStr, ErrorCode.INVALID_INPUT_VALUE);
 
         // DELETED는 delete API로만 처리
         if (newStatus == ProductStatus.DELETED) {
@@ -256,10 +244,9 @@ public class ProductService {
         }
 
         switch (newStatus) {
-            case ON_SALE  -> product.restore();
-            case RESERVED -> product.reserve();
-            case SOLD     -> product.completeSale();
-            default       -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+            case ON_SALE -> product.restore();
+            case SOLD    -> product.completeSale();
+            default      -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
@@ -317,7 +304,7 @@ public class ProductService {
     /** 판매자 프로필 카드 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
         long completedCount = orderRepository.countBySellerIdAndOrderStatus(
-                seller.getMemberId(), "COMPLETED");
+                seller.getMemberId(), OrderStatus.COMPLETED.name());
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);
@@ -342,6 +329,36 @@ public class ProductService {
                     .build());
         }
         productImageRepository.saveAll(images);
+    }
+
+    private void syncImages(Product product, List<String> newUrls) {
+        List<ProductImage> currentImages = product.getImages();
+
+        // 새 목록에 없는 이미지 삭제 (orphanRemoval이 DB DELETE 처리)
+        currentImages.removeIf(img -> !newUrls.contains(img.getImageUrl()));
+
+        // 기존에 남아있는 이미지 URL 세트
+        Set<String> existingUrls = currentImages.stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toSet());
+
+        // 새로 추가된 이미지만 INSERT (최종 순서 기준으로 sort_order 설정)
+        List<ProductImage> toAdd = new ArrayList<>();
+        for (String url : newUrls) {
+            if (!existingUrls.contains(url)) {
+                toAdd.add(ProductImage.builder()
+                        .product(product)
+                        .imageUrl(url)
+                        .sortOrder(newUrls.indexOf(url))
+                        .build());
+            }
+        }
+        productImageRepository.saveAll(toAdd);
+
+        // 기존 이미지 sort_order 갱신 (순서 변경 반영)
+        for (ProductImage img : currentImages) {
+            img.updateSortOrder(newUrls.indexOf(img.getImageUrl()));
+        }
     }
 
     /** 상품 ID 목록 → 대표 이미지(sort_order=0) 맵 (N+1 방지 배치 조회) */

@@ -158,7 +158,7 @@ public class ProductController {
 
     // ── 내 판매 상품 목록 (로그인 필요) ──────────────────────
 
-    @GetMapping("/me")
+    @GetMapping("/api/members/me/products")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getMyProducts(
             @RequestParam(required = false) String status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {

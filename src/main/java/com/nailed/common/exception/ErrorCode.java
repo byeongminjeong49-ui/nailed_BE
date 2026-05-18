@@ -33,7 +33,7 @@ public enum ErrorCode {
     MEMBER_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "M002", "이미 가입된 회원입니다."),
     MEMBER_WITHDRAWN                    (HttpStatus.BAD_REQUEST,            "M003", "탈퇴한 회원입니다."),
     MEMBER_SUSPENDED                    (HttpStatus.FORBIDDEN,              "M004", "일시 정지된 계정입니다. 관리자에게 문의하세요."),
-    MEMBER_BANNED                       (HttpStatus.FORBIDDEN,              "M005", "영구 차단된 계정입니다."),
+    MEMBER_BANNED                       (HttpStatus.FORBIDDEN,              "M005", "영구 정지된 계정입니다."),
     MEMBER_LOCKED                       (HttpStatus.FORBIDDEN,              "M006", "로그인 실패 누적으로 잠금된 계정입니다."),
     INVALID_TOKEN                       (HttpStatus.UNAUTHORIZED,           "M007", "유효하지 않은 토큰입니다."),
     TOKEN_EXPIRED                       (HttpStatus.UNAUTHORIZED,           "M008", "만료된 토큰입니다. 다시 로그인해주세요."),
@@ -47,56 +47,55 @@ public enum ErrorCode {
     // P : Product (products / product_groups / product_images 테이블)
     // ─────────────────────────────────────────────────────────────────
     PRODUCT_NOT_FOUND                   (HttpStatus.NOT_FOUND,              "P001", "존재하지 않는 상품입니다."),
-    PRODUCT_ALREADY_SOLD                (HttpStatus.BAD_REQUEST,            "P002", "이미 판매 완료된 상품입니다."),
+    PRODUCT_ALREADY_SOLD                (HttpStatus.BAD_REQUEST,            "P002", "판매 완료된 상품입니다."),
     PRODUCT_DELETED                     (HttpStatus.BAD_REQUEST,            "P003", "삭제된 상품입니다."),
     PRODUCT_UNAUTHORIZED                (HttpStatus.FORBIDDEN,              "P004", "해당 상품에 대한 권한이 없습니다."),
-    PRODUCT_RESERVED                    (HttpStatus.CONFLICT,               "P005", "다른 사용자가 결제 진행 중인 상품입니다."),
     CATEGORY_NOT_FOUND                  (HttpStatus.NOT_FOUND,              "P006", "존재하지 않는 카테고리입니다."),
     BRAND_NOT_FOUND                     (HttpStatus.NOT_FOUND,              "P007", "존재하지 않는 브랜드입니다."),
     INVALID_GROUP_TYPE                  (HttpStatus.BAD_REQUEST,            "P008", "유효하지 않은 그룹 타입입니다. (CATEGORY/BRAND)"),
     PRODUCT_IMAGE_NOT_FOUND             (HttpStatus.NOT_FOUND,              "P009", "존재하지 않는 상품 이미지입니다."),
-    PRODUCT_IMAGE_LIMIT_EXCEEDED        (HttpStatus.BAD_REQUEST,            "P010", "상품 이미지 등록 가능 개수를 초과했습니다."),
+    PRODUCT_IMAGE_LIMIT_EXCEEDED        (HttpStatus.BAD_REQUEST,            "P010", "상품 이미지는 최대 10개까지만 등록 가능합니다."),
+    PRODUCT_IMAGE_SIZE_EXCEEDED         (HttpStatus.BAD_REQUEST,            "P011", "이미지 파일은 5MB 이하만 업로드 가능합니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // O : Order / Payment (orders 테이블에 통합)
     // ─────────────────────────────────────────────────────────────────
     ORDER_NOT_FOUND                     (HttpStatus.NOT_FOUND,              "O001", "존재하지 않는 주문입니다."),
-    ORDER_INVALID_STATUS                (HttpStatus.BAD_REQUEST,            "O002", "현재 주문 상태에서 불가능한 요청입니다."),
+    ORDER_INVALID_STATUS                (HttpStatus.BAD_REQUEST,            "O002", "현재 주문 상태에서는 지원하지 않는 요청입니다."),
     ORDER_UNAUTHORIZED                  (HttpStatus.FORBIDDEN,              "O003", "해당 주문에 대한 권한이 없습니다."),
-    SELF_ORDER_NOT_ALLOWED              (HttpStatus.BAD_REQUEST,            "O004", "본인 상품은 구매할 수 없습니다."),
-    PAYMENT_FAILED                      (HttpStatus.BAD_REQUEST,            "O005", "결제에 실패했습니다."),
-    PAYMENT_ALREADY_COMPLETED           (HttpStatus.BAD_REQUEST,            "O006", "이미 완료된 결제입니다."),
+    SELF_ORDER_NOT_ALLOWED              (HttpStatus.BAD_REQUEST,            "O004", "본인이 등록한 상품은 구매할 수 없습니다."),
+    PAYMENT_FAILED                      (HttpStatus.BAD_REQUEST,            "O005", "결제 승인이 정상적으로 완료되지 않았습니다."),
+    PAYMENT_ALREADY_COMPLETED           (HttpStatus.BAD_REQUEST,            "O006", "결제가 완료된 주문입니다."),
     PAYMENT_AMOUNT_MISMATCH             (HttpStatus.BAD_REQUEST,            "O007", "결제 금액이 일치하지 않습니다."),
-    CANCEL_ALREADY_REQUESTED            (HttpStatus.CONFLICT,               "O008", "이미 취소 요청이 접수된 주문입니다."),
+    CANCEL_ALREADY_REQUESTED            (HttpStatus.CONFLICT,               "O008", "취소 요청이 접수된 주문입니다."),
     CANCEL_NOT_ALLOWED                  (HttpStatus.BAD_REQUEST,            "O009", "현재 상태에서는 취소할 수 없습니다."),
-    PAYMENT_REFUND_FAILED               (HttpStatus.BAD_REQUEST,            "O010", "결제 환불에 실패했습니다."),
-    INVALID_COMMISSION_RATE             (HttpStatus.BAD_REQUEST,            "O011", "수수료율은 0~100 사이여야 합니다."),
-    INVALID_FINAL_PRICE                 (HttpStatus.BAD_REQUEST,            "O012", "최종 결제 금액이 일치하지 않습니다."),
+    PAYMENT_REFUND_FAILED               (HttpStatus.BAD_REQUEST,            "O010", "환불 처리가 정상적으로 완료되지 않았습니다."),
+    INVALID_FINAL_PRICE                 (HttpStatus.BAD_REQUEST,            "O011", "최종 결제 금액이 일치하지 않습니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // D : Delivery (orders.carrier_code / tracking_number 로 통합)
     // ─────────────────────────────────────────────────────────────────
-    INVALID_COURIER_CODE                (HttpStatus.BAD_REQUEST,            "D001", "지원하지 않는 택배사 코드입니다."),
-    TRACKING_NUMBER_ALREADY_EXISTS      (HttpStatus.CONFLICT,               "D002", "이미 운송장이 입력된 주문입니다."),
-    DELIVERY_INVALID_STATUS             (HttpStatus.BAD_REQUEST,            "D003", "현재 배송 상태에서 불가능한 요청입니다."),
+    INVALID_COURIER_CODE                (HttpStatus.BAD_REQUEST,            "D001", "지원하지 않는 택배사입니다."),
+    TRACKING_NUMBER_ALREADY_EXISTS      (HttpStatus.CONFLICT,               "D002", "운송장 번호가 이미 등록되어 있습니다."),
+    DELIVERY_INVALID_STATUS             (HttpStatus.BAD_REQUEST,            "D003", "현재 배송 단계에서는 진행할 수 없습니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // R : Report / Penalty (reports / member_penalties 테이블)
     // ─────────────────────────────────────────────────────────────────
-    REPORT_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "R001", "존재하지 않는 신고입니다."),
-    REPORT_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "R002", "이미 신고한 대상입니다."),
-    SELF_REPORT_NOT_ALLOWED             (HttpStatus.BAD_REQUEST,            "R003", "본인은 신고할 수 없습니다."),
-    INVALID_REPORT_REASON               (HttpStatus.BAD_REQUEST,            "R004", "유효하지 않은 신고 사유입니다."),
-    PENALTY_NOT_FOUND                   (HttpStatus.NOT_FOUND,              "R005", "존재하지 않는 제재 기록입니다."),
-    INVALID_PENALTY_TYPE                (HttpStatus.BAD_REQUEST,            "R006", "유효하지 않은 제재 유형입니다. (WARNING/SUSPEND/BAN)"),
-    INVALID_PENALTY_DAYS                (HttpStatus.BAD_REQUEST,            "R007", "정지 일수가 유효하지 않습니다."),
+    REPORT_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "R001", "신고 내역을 찾을 수 없습니다."),
+    REPORT_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "R002", "이미 신고가 접수된 대상입니다."),
+    SELF_REPORT_NOT_ALLOWED             (HttpStatus.BAD_REQUEST,            "R003", "본인이 등록한 상품은 신고할 수 없습니다."),
+    INVALID_REPORT_REASON               (HttpStatus.BAD_REQUEST,            "R004", "올바르지 않은 신고 사유입니다."),
+    PENALTY_NOT_FOUND                   (HttpStatus.NOT_FOUND,              "R005", "제재 내역을 찾을 수 없습니다."),
+    INVALID_PENALTY_TYPE                (HttpStatus.BAD_REQUEST,            "R006", "지원하지 않는 제재 유형입니다. (WARNING/SUSPEND/BAN)"),
+    INVALID_PENALTY_DAYS                (HttpStatus.BAD_REQUEST,            "R007", "정지 기간 설정이 올바르지 않습니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // V : Review (reviews 테이블)
     // ─────────────────────────────────────────────────────────────────
-    REVIEW_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "V001", "존재하지 않는 리뷰입니다."),
-    REVIEW_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "V002", "이미 리뷰를 작성한 주문입니다."),
-    REVIEW_NOT_ALLOWED                  (HttpStatus.BAD_REQUEST,            "V003", "구매 확정된 주문에 대해서만 리뷰 작성이 가능합니다."),
+    REVIEW_NOT_FOUND                    (HttpStatus.NOT_FOUND,              "V001", "리뷰를 찾을 수 없습니다."),
+    REVIEW_ALREADY_EXISTS               (HttpStatus.CONFLICT,               "V002", "이미 리뷰가 등록된 주문입니다."),
+    REVIEW_NOT_ALLOWED                  (HttpStatus.BAD_REQUEST,            "V003", "구매가 확정된 주문만 리뷰를 작성할 수 있습니다."),
     INVALID_RATING                      (HttpStatus.BAD_REQUEST,            "V004", "별점은 1~5점 사이여야 합니다."),
 
     // ─────────────────────────────────────────────────────────────────

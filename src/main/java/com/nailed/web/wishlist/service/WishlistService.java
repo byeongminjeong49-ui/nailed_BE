@@ -1,0 +1,132 @@
+package com.nailed.web.wishlist.service;
+
+import com.nailed.common.enums.ProductStatus;
+import com.nailed.common.exception.CustomException;
+import com.nailed.common.exception.ErrorCode;
+import com.nailed.common.response.PageResponse;
+import com.nailed.web.member.entity.Member;
+import com.nailed.web.member.repository.MemberRepository;
+import com.nailed.web.product.dto.ProductResponse;
+import com.nailed.web.product.entity.Product;
+import com.nailed.web.product.entity.ProductImage;
+import com.nailed.web.product.repository.ProductImageRepository;
+import com.nailed.web.product.repository.ProductRepository;
+import com.nailed.web.wishlist.entity.Wishlist;
+import com.nailed.web.wishlist.repository.WishlistRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class WishlistService {
+
+    private final WishlistRepository wishlistRepository;
+    private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
+    private final MemberRepository memberRepository;
+
+    // ── 찜 등록 ───────────────────────────────────────────────
+
+    /**
+     * 상품 상세에서 찜 버튼 클릭 시 호출
+     * - 중복 등록 차단 (W001)
+     * - products.wishlist_count +1 동기화
+     */
+    @Transactional
+    public void addWishlist(String memberId, Long productId) {
+        // 이미 찜한 상품이면 차단
+        if (wishlistRepository.existsByMemberMemberIdAndProductProductId(memberId, productId)) {
+            throw new CustomException(ErrorCode.WISHLIST_ALREADY_EXISTS);
+        }
+
+        Member member = findMember(memberId);
+        Product product = findActiveProduct(productId);
+
+        Wishlist wishlist = Wishlist.builder()
+                .member(member)
+                .product(product)
+                .build();
+        wishlistRepository.save(wishlist);
+
+        // 상품 찜수 +1
+        product.increaseWishlistCount();
+    }
+
+    // ── 찜 취소 ───────────────────────────────────────────────
+
+    /**
+     * 상품 상세의 찜 토글 OFF 또는 찜 목록의 X 버튼에서 호출
+     * - 찜 내역 없으면 404 (W002)
+     * - products.wishlist_count -1 동기화 (0 미만 방지는 Product 메서드 내부)
+     */
+    @Transactional
+    public void removeWishlist(String memberId, Long productId) {
+        Wishlist wishlist = wishlistRepository
+                .findByMemberMemberIdAndProductProductId(memberId, productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.WISHLIST_NOT_FOUND));
+
+        // delete 전에 참조를 꺼내둬야 영속성 컨텍스트 분리 후에도 안전하게 접근 가능
+        Product product = wishlist.getProduct();
+        wishlistRepository.delete(wishlist);
+
+        // 상품 찜수 -1 (상품이 이미 DELETED여도 카운트는 맞춰둠)
+        product.decreaseWishlistCount();
+    }
+
+    // ── 내 찜 목록 ───────────────────────────────────────────
+
+    /**
+     * 마이페이지(nld-904) 찜 목록 조회
+     * - 최근 찜 순 정렬 (WishlistRepository.findMyWishlist 의 ORDER BY 사용)
+     * - DELETED 상품은 제외, SOLD 는 포함되어 '거래완료' 배지 노출
+     * - ProductResponse.Summary 재사용 + 썸네일 배치 조회 (N+1 방지)
+     */
+    public PageResponse<ProductResponse.Summary> getMyWishlist(String memberId, Pageable pageable) {
+        Page<Wishlist> page = wishlistRepository
+                .findMyWishlist(memberId, ProductStatus.DELETED, pageable);
+
+        // 찜 목록에서 바로 상품 ID만 추출하여 썸네일 맵 구성
+        List<Long> productIds = page.getContent().stream()
+                .map(w -> w.getProduct().getProductId())
+                .toList();
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+
+        return PageResponse.of(page.map(w ->
+                ProductResponse.Summary.from(w.getProduct(),
+                        thumbnailMap.get(w.getProduct().getProductId()))));
+    }
+
+    // ── 내부 유틸 ────────────────────────────────────────────
+
+    /** 존재하고 삭제되지 않은 상품 조회 (찜은 DELETED 상품에 불가) */
+    private Product findActiveProduct(Long productId) {
+        return productRepository
+                .findByProductIdAndProductStatusNot(productId, ProductStatus.DELETED)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+    }
+
+    private Member findMember(String memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
+    }
+
+    /** 상품 ID 목록 → 대표 이미지(sort_order=0) 맵 (ProductService 와 동일 패턴) */
+    private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
+        if (productIds.isEmpty()) return Map.of();
+        return productImageRepository.findThumbnailsByProductIds(productIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        img -> img.getProduct().getProductId(),
+                        ProductImage::getImageUrl,
+                        (existing, replacement) -> existing
+                ));
+    }
+}
