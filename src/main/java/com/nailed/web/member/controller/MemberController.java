@@ -55,20 +55,6 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.getMyProducts(memberId, status, pageable)));
     }
 
-    @GetMapping("/members/me/wishlist")
-    public ResponseEntity<ApiResponse<PageResponse<MemberResponse.WishlistItem>>> getMyWishlist(
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        String memberId = SecurityUtil.getCurrentMemberId();
-        return ResponseEntity.ok(ApiResponse.success(memberService.getMyWishlist(memberId, pageable)));
-    }
-
-    @DeleteMapping("/members/me/wishlist/{productId}")
-    public ResponseEntity<ApiResponse<Void>> deleteMyWishlist(@PathVariable Long productId) {
-        String memberId = SecurityUtil.getCurrentMemberId();
-        memberService.deleteWishlist(memberId, productId);
-        return ResponseEntity.ok(ApiResponse.success());
-    }
-
     @GetMapping("/members/me/orders")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.OrderSummary>>> getMyOrders(
             @RequestParam(defaultValue = "BUY") String type,

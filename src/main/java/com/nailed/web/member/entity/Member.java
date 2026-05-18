@@ -51,7 +51,7 @@ public class Member extends BaseEntity {
     @Builder.Default
     private String role = "USER";
 
-    @Column(name = "marketing_agreed", nullable = false)
+    @Column(name = "marketing_agreed", nullable = false, columnDefinition = "TINYINT(1)")
     @Builder.Default
     private boolean marketingAgreed = false;
 
