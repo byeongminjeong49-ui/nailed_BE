@@ -10,4 +10,6 @@ public interface OrderService {
     OrderResponseDto getOrder(String orderId);
 
     long countSellerOrdersByStatus(String sellerId, String orderStatus);
+    
+    OrderResponseDto mockPay(String orderId);
 }

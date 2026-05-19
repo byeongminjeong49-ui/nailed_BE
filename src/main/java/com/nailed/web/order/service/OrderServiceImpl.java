@@ -60,6 +60,15 @@ public class OrderServiceImpl implements OrderService {
         validateOrderStatus(orderStatus);
         return orderRepository.countBySellerIdAndOrderStatus(sellerId, orderStatus);
     }
+    
+    @Override
+    @Transactional
+    public OrderResponseDto mockPay(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        order.markAsPaid(); 
+        return OrderResponseDto.from(order);
+    }
 
     private String generateOrderId() {
         long num = orderRepository.count() + 1;

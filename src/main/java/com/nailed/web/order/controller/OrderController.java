@@ -15,7 +15,7 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*") // ⚡ 프론트엔드 포트(5173) 교차 출처 에러(CORS) 방지 및 주소 라우팅 안정화
+@CrossOrigin(origins = "*", allowedHeaders = "*") 
 public class OrderController {
 
     private final OrderService orderService;
@@ -63,4 +63,12 @@ public class OrderController {
     public ResponseEntity<OrderResponseDto> confirmDelivery(@PathVariable("orderId") String orderId) {
         return ResponseEntity.ok(shippingService.confirmDelivery(orderId));
     }
+    
+    // PATCH /api/orders/{orderId}/pay — 결제 처리 (mock)
+    @PatchMapping("/{orderId}/pay")
+    public ResponseEntity<OrderResponseDto> mockPay(@PathVariable("orderId") String orderId) {
+        return ResponseEntity.ok(orderService.mockPay(orderId));
+    }
+    
+    
 }
