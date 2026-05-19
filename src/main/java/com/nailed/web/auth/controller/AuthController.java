@@ -43,17 +43,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
     }
 
-    @PostMapping("/api/auth/email/send-code")
-    public ResponseEntity<ApiResponse<AuthResponse.VerificationCode>> sendEmailCode(
-            @Valid @RequestBody AuthRequest.EmailCodeSend request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.sendEmailCode(request)));
-    }
-
-    @PostMapping("/api/auth/email/verify-code")
-    public ResponseEntity<ApiResponse<AuthResponse.SimpleResult>> verifyEmailCode(
-            @Valid @RequestBody AuthRequest.EmailCodeVerify request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.verifyEmailCode(request)));
-    }
+  
 
     @PostMapping("/api/auth/password/reset-request")
     public ResponseEntity<ApiResponse<AuthResponse.SimpleResult>> requestPasswordReset(

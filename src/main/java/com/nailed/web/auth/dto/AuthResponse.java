@@ -40,11 +40,6 @@ public class AuthResponse {
         }
     }
 
-    public record VerificationCode(
-            boolean success,
-            String code
-    ) {}
-
     public record SimpleResult(
             boolean success
     ) {}

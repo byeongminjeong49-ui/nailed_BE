@@ -20,7 +20,7 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final EmailVerificationService emailVerificationService;
+   
 
     public AuthResponse.DuplicateCheck checkEmail(String email) {
         return new AuthResponse.DuplicateCheck(memberRepository.existsByEmail(email));
@@ -40,9 +40,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
         }
 
-        if (!emailVerificationService.isVerified(request.email())) {
-            throw new CustomException(ErrorCode.UNAUTHORIZED);
-        }
+        
 
         Member member = Member.builder()
                 .memberId(generateMemberId())
@@ -69,19 +67,7 @@ public class AuthService {
         return AuthResponse.Login.from(member);
     }
 
-    public AuthResponse.VerificationCode sendEmailCode(AuthRequest.EmailCodeSend request) {
-        if (memberRepository.existsByEmail(request.email())) {
-            throw new CustomException(ErrorCode.MEMBER_ALREADY_EXISTS);
-        }
-
-        String code = emailVerificationService.createCode(request.email());
-        return new AuthResponse.VerificationCode(true, code);
-    }
-
-    public AuthResponse.SimpleResult verifyEmailCode(AuthRequest.EmailCodeVerify request) {
-        emailVerificationService.verify(request.email(), request.code());
-        return new AuthResponse.SimpleResult(true);
-    }
+  
 
     public AuthResponse.SimpleResult requestPasswordReset(AuthRequest.PasswordResetRequest request) {
         if (memberRepository.findByEmail(request.email()).isEmpty()) {
