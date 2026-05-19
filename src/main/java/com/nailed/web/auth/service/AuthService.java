@@ -2,7 +2,6 @@ package com.nailed.web.auth.service;
 
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
-import com.nailed.common.jwt.TokenProvider;
 import com.nailed.web.auth.dto.AuthRequest;
 import com.nailed.web.auth.dto.AuthResponse;
 import com.nailed.web.member.entity.Member;
@@ -21,8 +20,6 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
-    private final TokenProvider tokenProvider;
-    private final EmailService emailService;
     private final EmailVerificationService emailVerificationService;
 
     public AuthResponse.DuplicateCheck checkEmail(String email) {
@@ -69,20 +66,16 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
-        String accessToken = tokenProvider.createAccessToken(member.getMemberId(), member.getEmail(), member.getRole());
-        String refreshToken = tokenProvider.createRefreshToken(member.getMemberId(), member.getEmail(), member.getRole());
-
-        return AuthResponse.Login.of(member, accessToken, refreshToken);
+        return AuthResponse.Login.from(member);
     }
 
-    public AuthResponse.SimpleResult sendEmailCode(AuthRequest.EmailCodeSend request) {
+    public AuthResponse.VerificationCode sendEmailCode(AuthRequest.EmailCodeSend request) {
         if (memberRepository.existsByEmail(request.email())) {
             throw new CustomException(ErrorCode.MEMBER_ALREADY_EXISTS);
         }
 
         String code = emailVerificationService.createCode(request.email());
-        emailService.sendVerificationCode(request.email(), code);
-        return new AuthResponse.SimpleResult(true);
+        return new AuthResponse.VerificationCode(true, code);
     }
 
     public AuthResponse.SimpleResult verifyEmailCode(AuthRequest.EmailCodeVerify request) {
@@ -95,7 +88,6 @@ public class AuthService {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
 
-        emailService.sendPasswordResetNotice(request.email());
         return new AuthResponse.SimpleResult(true);
     }
 

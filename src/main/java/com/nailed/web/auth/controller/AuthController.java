@@ -44,7 +44,7 @@ public class AuthController {
     }
 
     @PostMapping("/api/auth/email/send-code")
-    public ResponseEntity<ApiResponse<AuthResponse.SimpleResult>> sendEmailCode(
+    public ResponseEntity<ApiResponse<AuthResponse.VerificationCode>> sendEmailCode(
             @Valid @RequestBody AuthRequest.EmailCodeSend request) {
         return ResponseEntity.ok(ApiResponse.success(authService.sendEmailCode(request)));
     }

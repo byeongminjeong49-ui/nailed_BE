@@ -28,23 +28,22 @@ public class AuthResponse {
             String memberId,
             String email,
             String nickname,
-            String role,
-            String accessToken,
-            String refreshToken,
-            String tokenType
+            String role
     ) {
-        public static Login of(Member member, String accessToken, String refreshToken) {
+        public static Login from(Member member) {
             return new Login(
                     member.getMemberId(),
                     member.getEmail(),
                     member.getNickname(),
-                    member.getRole(),
-                    accessToken,
-                    refreshToken,
-                    "Bearer"
+                    member.getRole()
             );
         }
     }
+
+    public record VerificationCode(
+            boolean success,
+            String code
+    ) {}
 
     public record SimpleResult(
             boolean success
