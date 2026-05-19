@@ -14,7 +14,7 @@ public class MemberResponse {
 
     public record Profile(
             String memberId,
-            String email,
+            String userid,
             String nickname,
             String name,
             String shopInfo,

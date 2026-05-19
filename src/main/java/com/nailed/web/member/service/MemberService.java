@@ -272,7 +272,7 @@ public class MemberService {
 
     private Object[] findMemberProfileRow(String memberId) {
         List<?> result = entityManager.createNativeQuery("""
-                SELECT member_id, email, nickname, name, shop_info, member_status,
+                SELECT member_id, userid, nickname, name, shop_info, member_status,
                        seller_grade, role, bank_code, account_number, depositor_name,
                        marketing_agreed, created_at
                 FROM members

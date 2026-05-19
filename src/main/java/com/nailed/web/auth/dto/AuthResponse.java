@@ -10,14 +10,14 @@ public class AuthResponse {
 
     public record Signup(
             String memberId,
-            String email,
+            String userid,
             String nickname,
             String name
     ) {
         public static Signup from(Member member) {
             return new Signup(
                     member.getMemberId(),
-                    member.getEmail(),
+                    member.getUserid(),
                     member.getNickname(),
                     member.getName()
             );
@@ -26,16 +26,18 @@ public class AuthResponse {
 
     public record Login(
             String memberId,
-            String email,
+            String userid,
             String nickname,
-            String role
+            String role,
+            String accessToken
     ) {
-        public static Login from(Member member) {
+        public static Login from(Member member, String accessToken) {
             return new Login(
                     member.getMemberId(),
-                    member.getEmail(),
+                    member.getUserid(),
                     member.getNickname(),
-                    member.getRole()
+                    member.getRole(),
+                    accessToken
             );
         }
     }

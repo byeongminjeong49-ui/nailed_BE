@@ -2,6 +2,7 @@ package com.nailed.web.auth.service;
 
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
+import com.nailed.config.jwt.JwtTokenProvider;
 import com.nailed.web.auth.dto.AuthRequest;
 import com.nailed.web.auth.dto.AuthResponse;
 import com.nailed.web.member.entity.Member;
@@ -20,10 +21,11 @@ public class AuthService {
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
    
 
-    public AuthResponse.DuplicateCheck checkEmail(String email) {
-        return new AuthResponse.DuplicateCheck(memberRepository.existsByEmail(email));
+    public AuthResponse.DuplicateCheck checkUserid(String userid) {
+        return new AuthResponse.DuplicateCheck(memberRepository.existsByUserid(normalizeUserid(userid)));
     }
 
     public AuthResponse.DuplicateCheck checkNickname(String nickname) {
@@ -32,7 +34,9 @@ public class AuthService {
 
     @Transactional
     public AuthResponse.Signup signup(AuthRequest.Signup request) {
-        if (memberRepository.existsByEmail(request.email())) {
+        String userid = normalizeUserid(request.userid());
+
+        if (memberRepository.existsByUserid(userid)) {
             throw new CustomException(ErrorCode.MEMBER_ALREADY_EXISTS);
         }
 
@@ -44,7 +48,7 @@ public class AuthService {
 
         Member member = Member.builder()
                 .memberId(generateMemberId())
-                .email(request.email())
+                .userid(userid)
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
                 .name(request.name())
@@ -55,7 +59,8 @@ public class AuthService {
     }
 
     public AuthResponse.Login login(AuthRequest.Login request) {
-        Member member = memberRepository.findByEmail(request.email())
+        String userid = normalizeUserid(request.userid());
+        Member member = memberRepository.findByUserid(userid)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
 
         validateMemberStatus(member);
@@ -64,13 +69,14 @@ public class AuthService {
             throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
-        return AuthResponse.Login.from(member);
+        return AuthResponse.Login.from(member, jwtTokenProvider.createAccessToken(member));
     }
 
   
 
     public AuthResponse.SimpleResult requestPasswordReset(AuthRequest.PasswordResetRequest request) {
-        if (memberRepository.findByEmail(request.email()).isEmpty()) {
+        String userid = normalizeUserid(request.userid());
+        if (memberRepository.findByUserid(userid).isEmpty()) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
 
@@ -83,6 +89,10 @@ public class AuthService {
             memberId = "M" + System.currentTimeMillis();
         } while (memberRepository.existsById(memberId));
         return memberId;
+    }
+
+    private String normalizeUserid(String userid) {
+        return userid == null ? "" : userid.trim();
     }
 
     private boolean matchesMockPassword(String rawPassword, String storedPassword) {

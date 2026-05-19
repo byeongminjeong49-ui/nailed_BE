@@ -19,10 +19,10 @@ public class AuthController {
 
     private final AuthService authService;
 
-    @GetMapping("/api/auth/check-email")
-    public ResponseEntity<ApiResponse<AuthResponse.DuplicateCheck>> checkEmail(
-            @RequestParam String email) {
-        return ResponseEntity.ok(ApiResponse.success(authService.checkEmail(email)));
+    @GetMapping("/api/auth/check-userid")
+    public ResponseEntity<ApiResponse<AuthResponse.DuplicateCheck>> checkUserid(
+            @RequestParam String userid) {
+        return ResponseEntity.ok(ApiResponse.success(authService.checkUserid(userid)));
     }
 
     @GetMapping("/api/auth/check-nickname")
