@@ -125,7 +125,7 @@ public class ProductService {
         return saved.getProductId();
     }
 
-    // ── 상품 상세 조회 ────────────────────────────────────────
+    // ── 상품 카드 클릭 → 상세 페이지 데이터 조회 ─────────────
 
     public ProductResponse.Detail getDetail(Long productId) {
         Product product = findActiveProduct(productId);
@@ -223,6 +223,12 @@ public class ProductService {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
 
+        // 진행중 거래가 있으면 삭제 불가 (REQUESTED~DELIVERED 상태)
+        if (orderRepository.existsByProductIdAndOrderStatusIn(
+                productId, List.of("REQUESTED", "PAID", "SHIPPING", "DELIVERED"))) {
+            throw new CustomException(ErrorCode.PRODUCT_HAS_ACTIVE_ORDER);
+        }
+
         product.delete(reason);
     }
 
@@ -248,23 +254,6 @@ public class ProductService {
             case SOLD    -> product.completeSale();
             default      -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-    }
-
-    // ── 내 판매 상품 목록 ─────────────────────────────────────
-
-    public PageResponse<ProductResponse.Summary> getMyProducts(String sellerId, String statusStr, Pageable pageable) {
-        Page<Product> page;
-
-        if (statusStr != null && !statusStr.isBlank()) {
-            // 특정 상태 필터
-            ProductStatus status = EnumUtil.parse(ProductStatus.class, statusStr, ErrorCode.INVALID_INPUT_VALUE);
-            page = productRepository.findBySellerMemberIdAndProductStatus(sellerId, status, pageable);
-        } else {
-            // 삭제된 상품 제외 전체
-            page = productRepository.findBySellerMemberIdAndProductStatusNot(sellerId, ProductStatus.DELETED, pageable);
-        }
-
-        return toSummaryPage(page);
     }
 
     // ── 내부 유틸 메서드 ──────────────────────────────────────
@@ -301,7 +290,7 @@ public class ProductService {
         }
     }
 
-    /** 판매자 프로필 카드 구성 */
+    /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
         long completedCount = orderRepository.countBySellerIdAndOrderStatus(
                 seller.getMemberId(), OrderStatus.COMPLETED.name());

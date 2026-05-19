@@ -22,7 +22,7 @@ public class ReviewController {
     /**
      * 리뷰 작성 (로그인 필요)
      * POST /api/reviews
-     * - 구매 확정 주문에 대해 구매자만 작성 가능
+     * - 구매 확정한 구매자만 작성 가능
      */
     @PostMapping("/api/reviews")
     public ResponseEntity<ApiResponse<ReviewResponse.Detail>> write(

@@ -11,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
@@ -87,7 +86,7 @@ public class ProductController {
                 productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, size, pageable)));
     }
 
-    // ── 상품 상세 (비로그인 가능) ─────────────────────────────
+    // ── 상품 클릭 → 상세 페이지 진입 시 호출 (비로그인 가능) ──
 
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse.Detail>> getDetail(
@@ -156,13 +155,4 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // ── 내 판매 상품 목록 (로그인 필요) ──────────────────────
-
-    @GetMapping("/api/members/me/products")
-    public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getMyProducts(
-            @RequestParam(required = false) String status,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        String sellerId = SecurityUtil.getCurrentMemberId();
-        return ResponseEntity.ok(ApiResponse.success(productService.getMyProducts(sellerId, status, pageable)));
-    }
 }

@@ -63,7 +63,7 @@ public class WishlistService {
     // ── 찜 취소 ───────────────────────────────────────────────
 
     /**
-     * 상품 상세의 찜 토글 OFF 또는 찜 목록의 X 버튼에서 호출
+     * 찜 토글 OFF 시 호출
      * - 찜 내역 없으면 404 (W002)
      * - products.wishlist_count -1 동기화 (0 미만 방지는 Product 메서드 내부)
      */
@@ -81,10 +81,10 @@ public class WishlistService {
         product.decreaseWishlistCount();
     }
 
-    // ── 내 찜 목록 ───────────────────────────────────────────
+    // ── 위시리스트 ───────────────────────────────────────────
 
     /**
-     * 마이페이지(nld-904) 찜 목록 조회
+     * 마이페이지(nld-904) 위시리스트 조회
      * - 최근 찜 순 정렬 (WishlistRepository.findMyWishlist 의 ORDER BY 사용)
      * - DELETED 상품은 제외, SOLD 는 포함되어 '거래완료' 배지 노출
      * - ProductResponse.Summary 재사용 + 썸네일 배치 조회 (N+1 방지)

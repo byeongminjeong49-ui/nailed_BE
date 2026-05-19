@@ -34,7 +34,7 @@ public class ProductResponse {
         }
     }
 
-    /** 상품 상세 - 판매자 프로필 카드 */
+    /** 상세 페이지 하단 판매자 프로필 카드 */
     public record SellerInfo(
             String memberId,
             String nickname,
@@ -43,7 +43,7 @@ public class ProductResponse {
             Double averageRating        // 평균 평점 (리뷰 없으면 null)
     ) {}
 
-    /** 상품 상세 */
+    /** 상세 페이지 전체 데이터 */
     public record Detail(
             Long productId,
             String title,

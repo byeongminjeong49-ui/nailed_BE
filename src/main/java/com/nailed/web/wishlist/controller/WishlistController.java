@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
  * IA 화면 매핑:
  *   - nld-403 상품 상세  → 찜 버튼   : POST/DELETE /api/products/{productId}/wishlist
  *   - nld-904 찜 목록   → 목록 조회 : GET    /api/members/me/wishlist
- *                     → X 버튼  : DELETE /api/members/me/wishlist/{productId}
  *
  * 모든 엔드포인트 로그인 필요 (SecurityUtil.getCurrentMemberId 호출 시 UNAUTHORIZED)
  */
@@ -55,12 +54,4 @@ public class WishlistController {
         return ResponseEntity.ok(ApiResponse.success(wishlistService.getMyWishlist(memberId, pageable)));
     }
 
-    // ── 찜 개별 삭제 (마이페이지 X 버튼) ─────────────────────
-
-    @DeleteMapping("/api/members/me/wishlist/{productId}")
-    public ResponseEntity<ApiResponse<Void>> deleteFromMyWishlist(@PathVariable Long productId) {
-        String memberId = SecurityUtil.getCurrentMemberId();
-        wishlistService.removeWishlist(memberId, productId);
-        return ResponseEntity.ok(ApiResponse.success());
-    }
 }
