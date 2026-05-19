@@ -62,4 +62,8 @@ public class Member extends BaseEntity {
     @Column(name = "login_count", nullable = false)
     @Builder.Default
     private int loginCount = 0;
+
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 }

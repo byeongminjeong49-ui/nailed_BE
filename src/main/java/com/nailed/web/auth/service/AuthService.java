@@ -12,12 +12,17 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AuthService {
 
     private static final String MOCK_PASSWORD_PREFIX = "{mock}";
+    private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+    private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
@@ -74,13 +79,16 @@ public class AuthService {
 
   
 
-    public AuthResponse.SimpleResult requestPasswordReset(AuthRequest.PasswordResetRequest request) {
+    @Transactional
+    public AuthResponse.PasswordReset requestPasswordReset(AuthRequest.PasswordResetRequest request) {
         String userid = normalizeUserid(request.userid());
-        if (memberRepository.findByUserid(userid).isEmpty()) {
-            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
-        }
+        Member member = memberRepository.findByUserid(userid)
+                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
 
-        return new AuthResponse.SimpleResult(true);
+        String temporaryPassword = generateTemporaryPassword();
+        member.changePasswordHash(passwordEncoder.encode(temporaryPassword));
+
+        return new AuthResponse.PasswordReset(temporaryPassword);
     }
 
     private String generateMemberId() {
@@ -93,6 +101,14 @@ public class AuthService {
 
     private String normalizeUserid(String userid) {
         return userid == null ? "" : userid.trim();
+    }
+
+    private String generateTemporaryPassword() {
+        StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
+        for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
+            password.append(TEMP_PASSWORD_CHARS.charAt(SECURE_RANDOM.nextInt(TEMP_PASSWORD_CHARS.length())));
+        }
+        return password.toString();
     }
 
     private boolean matchesMockPassword(String rawPassword, String storedPassword) {

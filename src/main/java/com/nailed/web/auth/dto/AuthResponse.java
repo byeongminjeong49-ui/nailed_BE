@@ -42,6 +42,10 @@ public class AuthResponse {
         }
     }
 
+    public record PasswordReset(
+            String temporaryPassword
+    ) {}
+
     public record SimpleResult(
             boolean success
     ) {}
