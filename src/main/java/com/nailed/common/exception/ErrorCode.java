@@ -57,6 +57,7 @@ public enum ErrorCode {
     PRODUCT_IMAGE_LIMIT_EXCEEDED        (HttpStatus.BAD_REQUEST,            "P010", "상품 이미지는 최대 10개까지만 등록 가능합니다."),
     PRODUCT_IMAGE_SIZE_EXCEEDED         (HttpStatus.BAD_REQUEST,            "P011", "이미지 파일은 5MB 이하만 업로드 가능합니다."),
     PRODUCT_HAS_ACTIVE_ORDER            (HttpStatus.CONFLICT,               "P012", "진행중인 거래가 있어 상품을 삭제할 수 없습니다."),
+    INVALID_SIZE                        (HttpStatus.BAD_REQUEST,            "P013", "유효하지 않은 사이즈입니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // O : Order / Payment (orders 테이블에 통합)

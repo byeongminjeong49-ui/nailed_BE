@@ -3,6 +3,7 @@ package com.nailed.web.product.service;
 import com.nailed.common.enums.OrderStatus;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.ProductStatus;
+import com.nailed.common.enums.SizeCode;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.PageResponse;
@@ -106,6 +107,11 @@ public class ProductService {
 
         // 상태등급 코드 검증 (S/A/B/C/D)
         ProductCondition condition = EnumUtil.parse(ProductCondition.class, req.conditionCode(), ErrorCode.INVALID_INPUT_VALUE);
+
+        // 사이즈 검증 (카테고리 타입에 맞는 사이즈인지 확인)
+        if (req.size() != null && !req.size().isBlank()) {
+            validateSize(req.size(), category);
+        }
 
         Product product = Product.builder()
                 .seller(seller)
@@ -223,6 +229,10 @@ public class ProductService {
         ProductGroup brand = req.brandId() != null ? findBrand(req.brandId()) : null;
         ProductCondition condition = EnumUtil.parse(ProductCondition.class, req.conditionCode(), ErrorCode.INVALID_INPUT_VALUE);
 
+        if (req.size() != null && !req.size().isBlank()) {
+            validateSize(req.size(), category);
+        }
+
         product.update(req.title(), category, brand, req.price(),
                 req.description(), condition, req.size(), req.hashtags());
 
@@ -270,6 +280,32 @@ public class ProductService {
     }
 
     // ── 내부 유틸 메서드 ──────────────────────────────────────
+
+    /**
+     * 카테고리 타입에 맞는 사이즈인지 검증
+     * - 신발(_SHOES_): 신발 사이즈(210~300)만 허용
+     * - 의류(_TOP_/_OUTER_/_BOTTOM_/_SKIRT_/_DRESS_): 의류 사이즈(OS~3XL)만 허용
+     * - 기타(가방/모자/럭셔리/액세서리 등): 사이즈 무관
+     */
+    private void validateSize(String size, ProductGroup category) {
+        SizeCode sizeCode = SizeCode.fromValue(size);
+        if (sizeCode == null) {
+            throw new CustomException(ErrorCode.INVALID_SIZE);
+        }
+
+        String code = category.getCode();
+        boolean isShoe = code.contains("_SHOES_");
+        boolean isClothing = code.contains("_TOP_") || code.contains("_OUTER_")
+                || code.contains("_BOTTOM_") || code.contains("_SKIRT_")
+                || code.contains("_DRESS_");
+
+        if (isShoe && sizeCode.getSizeType() != SizeCode.SizeType.SHOES) {
+            throw new CustomException(ErrorCode.INVALID_SIZE);
+        }
+        if (isClothing && sizeCode.getSizeType() != SizeCode.SizeType.CLOTHING) {
+            throw new CustomException(ErrorCode.INVALID_SIZE);
+        }
+    }
 
     /** 존재하고 삭제되지 않은 상품 조회 */
     private Product findActiveProduct(Long productId) {
