@@ -41,7 +41,7 @@ public class ReviewController {
     @GetMapping("/api/users/{memberId}/reviews")
     public ResponseEntity<ApiResponse<ReviewResponse.SellerReviews>> getSellerReviews(
             @PathVariable String memberId,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         ReviewResponse.SellerReviews result = reviewService.getSellerReviews(memberId, pageable);
         return ResponseEntity.ok(ApiResponse.success(result));
     }

@@ -69,4 +69,29 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                          @Param("conditionCode") ProductCondition conditionCode,
                          @Param("size") String size,
                          Pageable pageable);
+
+    // 인기순 전용 쿼리 (조회수×1 + 찜수×3)
+    @Query(value = "SELECT p FROM Product p WHERE p.productStatus = :onSale " +
+                   "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
+                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+                   "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                   "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                   "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                   "AND (:size IS NULL OR p.size = :size) " +
+                   "ORDER BY (p.viewCount + p.wishlistCount * 3) DESC",
+           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.productStatus = :onSale " +
+                        "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
+                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+                        "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                        "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                        "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                        "AND (:size IS NULL OR p.size = :size)")
+    Page<Product> searchOrderByPopular(@Param("onSale") ProductStatus onSale,
+                                       @Param("categoryId") Long categoryId,
+                                       @Param("keyword") String keyword,
+                                       @Param("minPrice") Integer minPrice,
+                                       @Param("maxPrice") Integer maxPrice,
+                                       @Param("conditionCode") ProductCondition conditionCode,
+                                       @Param("size") String size,
+                                       Pageable pageable);
 }

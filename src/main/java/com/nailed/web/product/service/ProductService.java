@@ -22,7 +22,9 @@ import com.nailed.web.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -171,15 +173,26 @@ public class ProductService {
     public PageResponse<ProductResponse.Summary> search(Long categoryId, String keyword,
                                                         Integer minPrice, Integer maxPrice,
                                                         String conditionCode, String size,
-                                                        Pageable pageable) {
-        // conditionCode가 전달된 경우에만 Enum 변환 (없으면 null → 필터 미적용)
+                                                        String sortBy, Pageable pageable) {
         ProductCondition condition = (conditionCode != null && !conditionCode.isBlank())
                 ? EnumUtil.parse(ProductCondition.class, conditionCode, ErrorCode.INVALID_INPUT_VALUE)
                 : null;
 
-        Page<Product> page = productRepository.search(
-                ProductStatus.ON_SALE, categoryId, keyword,
-                minPrice, maxPrice, condition, size, pageable);
+        Page<Product> page;
+        if ("popular".equals(sortBy)) {
+            Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            page = productRepository.searchOrderByPopular(
+                    ProductStatus.ON_SALE, categoryId, keyword, minPrice, maxPrice, condition, size, unsorted);
+        } else {
+            Sort sort = switch (sortBy) {
+                case "price_asc"  -> Sort.by("price").ascending();
+                case "price_desc" -> Sort.by("price").descending();
+                default           -> Sort.by("createdAt").descending();
+            };
+            Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+            page = productRepository.search(
+                    ProductStatus.ON_SALE, categoryId, keyword, minPrice, maxPrice, condition, size, sorted);
+        }
 
         return toSummaryPage(page);
     }
