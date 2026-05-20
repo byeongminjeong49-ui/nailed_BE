@@ -105,7 +105,7 @@ public enum CategoryCode {
     LUXURY_FERRAGAMO("페라가모", "럭셔리 > 페라가모"),
     LUXURY_CHANEL("샤넬", "럭셔리 > 샤넬"),
     LUXURY_LV("루이비통", "럭셔리 > 루이비통"),
-    LUXURY_MONCLER("몽블랑", "럭셔리 > 몽블랑"),
+    LUXURY_MONTBLANC("몽블랑", "럭셔리 > 몽블랑"),
     LUXURY_CHROME_HEARTS("크롬하츠", "럭셔리 > 크롬하츠"),
 
     // ───────────── 액세서리 > 패션잡화 ─────────────
