@@ -7,12 +7,14 @@ import com.nailed.web.auth.dto.AuthRequest;
 import com.nailed.web.auth.dto.AuthResponse;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,9 @@ public class AuthService {
     private static final String MOCK_PASSWORD_PREFIX = "{mock}";
     private static final String TEMP_PASSWORD_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
     private static final int TEMP_PASSWORD_LENGTH = 10;
+    private static final int LOGIN_FAIL_LIMIT = 5;
+    private static final int LOGIN_FAIL_WINDOW_MINUTES = 30;
+    private static final int LOGIN_LOCK_MINUTES = 10;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final MemberRepository memberRepository;
@@ -63,18 +68,66 @@ public class AuthService {
         return AuthResponse.Signup.from(memberRepository.save(member));
     }
 
+    @Transactional(noRollbackFor = CustomException.class)
     public AuthResponse.Login login(AuthRequest.Login request) {
         String userid = normalizeUserid(request.userid());
         Member member = memberRepository.findByUserid(userid)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
+        LocalDateTime now = LocalDateTime.now();
 
+        handleExpiredLoginRestriction(member, now);
         validateMemberStatus(member);
+        resetExpiredLoginFailureWindow(member, now);
 
         if (!matchesMockPassword(request.password(), member.getPasswordHash())) {
+            recordLoginFailure(member, now);
             throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
-        return AuthResponse.Login.from(member, jwtTokenProvider.createAccessToken(member));
+        member.resetLoginFailures();
+        member.increaseLoginCount();
+        JwtTokenProvider.AccessTokenInfo accessTokenInfo = jwtTokenProvider.createAccessTokenInfo(member);
+        JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);
+        member.updateRefreshToken(refreshTokenInfo.refreshToken(), refreshTokenInfo.refreshTokenExpiresAt());
+
+        return AuthResponse.Login.from(member, accessTokenInfo, refreshTokenInfo);
+    }
+
+    public AuthResponse.TokenRefresh refreshAccessToken(AuthRequest.TokenRefresh request) {
+        String refreshToken = normalizeToken(request == null ? null : request.refreshToken());
+        if (refreshToken.isBlank()) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        Member member = memberRepository.findByRefreshToken(refreshToken)
+                .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
+
+        if (!refreshToken.equals(member.getRefreshToken())) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        if (member.getRefreshTokenExpiresAt() == null
+                || !member.getRefreshTokenExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new CustomException(ErrorCode.TOKEN_EXPIRED);
+        }
+
+        validateRefreshTokenFormat(refreshToken);
+        validateMemberStatus(member);
+
+        JwtTokenProvider.AccessTokenInfo accessTokenInfo = jwtTokenProvider.createAccessTokenInfo(member);
+        return AuthResponse.TokenRefresh.from(member, accessTokenInfo);
+    }
+
+    @Transactional
+    public AuthResponse.SimpleResult logout(AuthRequest.TokenRefresh request) {
+        String refreshToken = normalizeToken(request == null ? null : request.refreshToken());
+        if (refreshToken.isBlank()) {
+            return new AuthResponse.SimpleResult(true);
+        }
+
+        memberRepository.findByRefreshToken(refreshToken)
+                .ifPresent(Member::clearRefreshToken);
+
+        return new AuthResponse.SimpleResult(true);
     }
 
   
@@ -103,6 +156,20 @@ public class AuthService {
         return userid == null ? "" : userid.trim();
     }
 
+    private String normalizeToken(String token) {
+        return token == null ? "" : token.trim();
+    }
+
+    private void validateRefreshTokenFormat(String refreshToken) {
+        try {
+            if (!jwtTokenProvider.validateRefreshToken(refreshToken)) {
+                throw new CustomException(ErrorCode.INVALID_TOKEN);
+            }
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+    }
+
     private String generateTemporaryPassword() {
         StringBuilder password = new StringBuilder(TEMP_PASSWORD_LENGTH);
         for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
@@ -115,6 +182,54 @@ public class AuthService {
         return passwordEncoder.matches(rawPassword, storedPassword)
                 || (MOCK_PASSWORD_PREFIX + rawPassword).equals(storedPassword)
                 || rawPassword.equals(storedPassword);
+    }
+
+    private void handleExpiredLoginRestriction(Member member, LocalDateTime now) {
+        String status = member.getMemberStatus();
+        if (!"LOCKED".equals(status) && !"SUSPEND".equals(status) && !"SUSPENDED".equals(status)) {
+            return;
+        }
+
+        LocalDateTime lockedUntil = member.getLockedUntil();
+        if (lockedUntil == null && !"LOCKED".equals(status)) {
+            throw new CustomException(ErrorCode.MEMBER_SUSPENDED);
+        }
+        if (lockedUntil != null && lockedUntil.isAfter(now)) {
+            if ("LOCKED".equals(status)) {
+                throw new CustomException(ErrorCode.MEMBER_LOCKED);
+            }
+            throw new CustomException(ErrorCode.MEMBER_SUSPENDED);
+        }
+
+        member.unlock();
+    }
+
+    private void resetExpiredLoginFailureWindow(Member member, LocalDateTime now) {
+        LocalDateTime loginFailStartedAt = member.getLoginFailStartedAt();
+        if (loginFailStartedAt == null) {
+            return;
+        }
+
+        if (!loginFailStartedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now)) {
+            member.resetLoginFailures();
+        }
+    }
+
+    private void recordLoginFailure(Member member, LocalDateTime now) {
+        LocalDateTime startedAt = member.getLoginFailStartedAt();
+        if (startedAt == null || !startedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now)) {
+            startedAt = now;
+            member.recordLoginFailure(startedAt, 1);
+            return;
+        }
+
+        int failCount = member.getLoginFailCount() + 1;
+        if (failCount >= LOGIN_FAIL_LIMIT) {
+            member.lockUntil(now.plusMinutes(LOGIN_LOCK_MINUTES));
+            throw new CustomException(ErrorCode.MEMBER_LOCKED);
+        }
+
+        member.recordLoginFailure(startedAt, failCount);
     }
 
     private void validateMemberStatus(Member member) {

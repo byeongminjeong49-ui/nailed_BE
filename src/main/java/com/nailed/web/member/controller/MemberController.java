@@ -34,20 +34,20 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.getUserHome(memberId)));
     }
 
-    @GetMapping("/members/me/profile")
+    @GetMapping("/members/mypage/profile")
     public ResponseEntity<ApiResponse<MemberResponse.Profile>> getMyProfile() {
         String memberId = SecurityUtil.getCurrentMemberId();
         return ResponseEntity.ok(ApiResponse.success(memberService.getProfile(memberId)));
     }
 
-    @PutMapping("/members/me/profile")
+    @PutMapping("/members/mypage/profile")
     public ResponseEntity<ApiResponse<MemberResponse.Profile>> updateMyProfile(
             @Valid @RequestBody MemberRequest.ProfileUpdate request) {
         String memberId = SecurityUtil.getCurrentMemberId();
         return ResponseEntity.ok(ApiResponse.success(memberService.updateProfile(memberId, request)));
     }
 
-    @GetMapping("/members/me/products")
+    @GetMapping("/members/mypage/products")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.ProductSummary>>> getMyProducts(
             @RequestParam(required = false) String status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -55,7 +55,7 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.getMyProducts(memberId, status, pageable)));
     }
 
-    @GetMapping("/members/me/orders")
+    @GetMapping("/members/mypage/orders")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.OrderSummary>>> getMyOrders(
             @RequestParam(defaultValue = "BUY") String type,
             @RequestParam(required = false) String status,
@@ -64,7 +64,7 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.getMyOrders(memberId, type, status, pageable)));
     }
 
-    @GetMapping("/members/me/settlements")
+    @GetMapping("/members/mypage/settlements")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.SettlementSummary>>> getMySettlements(
             @RequestParam(required = false) String status,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
@@ -72,7 +72,7 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.getMySettlements(memberId, status, pageable)));
     }
 
-    @DeleteMapping("/members/me")
+    @DeleteMapping("/members/mypage")
     public ResponseEntity<ApiResponse<Void>> withdraw() {
         String memberId = SecurityUtil.getCurrentMemberId();
         memberService.withdraw(memberId);

@@ -47,7 +47,7 @@ public class WishlistController {
 
     // ── 위시리스트 (마이페이지) ──────────────────────────────
 
-    @GetMapping("/api/members/me/wishlist")
+    @GetMapping("/api/members/mypage/wishlist")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getMyWishlist(
             @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         String memberId = SecurityUtil.getCurrentMemberId();

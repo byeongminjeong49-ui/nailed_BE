@@ -2,6 +2,7 @@ package com.nailed.web.member.entity;
 
 import com.nailed.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import lombok.*;
 
 /**
@@ -55,9 +56,21 @@ public class Member extends BaseEntity {
     @Builder.Default
     private boolean marketingAgreed = false;
 
+    @Column(name = "refresh_token", length = 500)
+    private String refreshToken;
+
+    @Column(name = "refresh_token_expires_at")
+    private LocalDateTime refreshTokenExpiresAt;
+
     @Column(name = "login_fail_count", nullable = false)
     @Builder.Default
     private int loginFailCount = 0;
+
+    @Column(name = "login_fail_started_at")
+    private LocalDateTime loginFailStartedAt;
+
+    @Column(name = "locked_until")
+    private LocalDateTime lockedUntil;
 
     @Column(name = "login_count", nullable = false)
     @Builder.Default
@@ -65,5 +78,44 @@ public class Member extends BaseEntity {
 
     public void changePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public void updateRefreshToken(String refreshToken, LocalDateTime refreshTokenExpiresAt) {
+        this.refreshToken = refreshToken;
+        this.refreshTokenExpiresAt = refreshTokenExpiresAt;
+    }
+
+    public void clearRefreshToken() {
+        this.refreshToken = null;
+        this.refreshTokenExpiresAt = null;
+    }
+
+    public void recordLoginFailure(LocalDateTime loginFailStartedAt, int loginFailCount) {
+        this.loginFailStartedAt = loginFailStartedAt;
+        this.loginFailCount = loginFailCount;
+    }
+
+    public void resetLoginFailures() {
+        this.loginFailCount = 0;
+        this.loginFailStartedAt = null;
+        this.lockedUntil = null;
+    }
+
+    public void increaseLoginCount() {
+        this.loginCount++;
+    }
+
+    public void lockUntil(LocalDateTime lockedUntil) {
+        this.memberStatus = "LOCKED";
+        this.lockedUntil = lockedUntil;
+        this.loginFailCount = 0;
+        this.loginFailStartedAt = null;
+    }
+
+    public void unlock() {
+        this.memberStatus = "ACTIVE";
+        this.lockedUntil = null;
+        this.loginFailCount = 0;
+        this.loginFailStartedAt = null;
     }
 }

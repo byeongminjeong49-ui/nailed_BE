@@ -33,6 +33,11 @@ public class AuthRequest {
             String password
     ) {}
 
+    public record TokenRefresh(
+            @NotBlank(message = "Refresh token is required.")
+            String refreshToken
+    ) {}
+
     public record PasswordResetRequest(
             @NotBlank(message = "User ID is required.")
             String userid

@@ -43,6 +43,18 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
     }
 
+    @PostMapping("/api/auth/refresh")
+    public ResponseEntity<ApiResponse<AuthResponse.TokenRefresh>> refreshAccessToken(
+            @RequestBody AuthRequest.TokenRefresh request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.refreshAccessToken(request)));
+    }
+
+    @PostMapping("/api/auth/logout")
+    public ResponseEntity<ApiResponse<AuthResponse.SimpleResult>> logout(
+            @RequestBody(required = false) AuthRequest.TokenRefresh request) {
+        return ResponseEntity.ok(ApiResponse.success(authService.logout(request)));
+    }
+
   
 
     @PostMapping("/api/auth/password/reset-request")

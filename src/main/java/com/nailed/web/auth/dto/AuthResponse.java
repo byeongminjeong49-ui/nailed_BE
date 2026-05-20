@@ -1,6 +1,8 @@
 package com.nailed.web.auth.dto;
 
+import com.nailed.config.jwt.JwtTokenProvider;
 import com.nailed.web.member.entity.Member;
+import java.time.LocalDateTime;
 
 public class AuthResponse {
 
@@ -29,15 +31,58 @@ public class AuthResponse {
             String userid,
             String nickname,
             String role,
-            String accessToken
+            String memberStatus,
+            String accessToken,
+            String tokenType,
+            long expiresIn,
+            LocalDateTime tokenExpiresAt,
+            String refreshToken,
+            long refreshExpiresIn,
+            LocalDateTime refreshTokenExpiresAt
     ) {
-        public static Login from(Member member, String accessToken) {
+        public static Login from(
+                Member member,
+                JwtTokenProvider.AccessTokenInfo accessTokenInfo,
+                JwtTokenProvider.RefreshTokenInfo refreshTokenInfo) {
             return new Login(
                     member.getMemberId(),
                     member.getUserid(),
                     member.getNickname(),
                     member.getRole(),
-                    accessToken
+                    member.getMemberStatus(),
+                    accessTokenInfo.accessToken(),
+                    accessTokenInfo.tokenType(),
+                    accessTokenInfo.expiresIn(),
+                    accessTokenInfo.tokenExpiresAt(),
+                    refreshTokenInfo.refreshToken(),
+                    refreshTokenInfo.refreshExpiresIn(),
+                    refreshTokenInfo.refreshTokenExpiresAt()
+            );
+        }
+    }
+
+    public record TokenRefresh(
+            String memberId,
+            String userid,
+            String nickname,
+            String role,
+            String memberStatus,
+            String accessToken,
+            String tokenType,
+            long expiresIn,
+            LocalDateTime tokenExpiresAt
+    ) {
+        public static TokenRefresh from(Member member, JwtTokenProvider.AccessTokenInfo accessTokenInfo) {
+            return new TokenRefresh(
+                    member.getMemberId(),
+                    member.getUserid(),
+                    member.getNickname(),
+                    member.getRole(),
+                    member.getMemberStatus(),
+                    accessTokenInfo.accessToken(),
+                    accessTokenInfo.tokenType(),
+                    accessTokenInfo.expiresIn(),
+                    accessTokenInfo.tokenExpiresAt()
             );
         }
     }
