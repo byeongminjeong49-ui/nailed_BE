@@ -248,7 +248,7 @@ public class ProductService {
 
         // 진행중 거래가 있으면 삭제 불가 (REQUESTED~DELIVERED 상태)
         if (orderRepository.existsByProductIdAndOrderStatusIn(
-                productId, List.of("REQUESTED", "PAID", "SHIPPING", "DELIVERED"))) {
+                productId, List.of("REQUESTED", "PAID", "SHIPPING"))) {
             throw new CustomException(ErrorCode.PRODUCT_HAS_ACTIVE_ORDER);
         }
 
@@ -336,8 +336,8 @@ public class ProductService {
 
     /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
-        long completedCount = orderRepository.countBySellerIdAndOrderStatus(
-                seller.getMemberId(), OrderStatus.COMPLETED.name());
+    	long completedCount = orderRepository.countBySellerIdAndOrderStatus(
+    	        seller.getMemberId(), OrderStatus.DELIVERED.name());
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);

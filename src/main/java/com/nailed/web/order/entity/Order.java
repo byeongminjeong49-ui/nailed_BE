@@ -58,7 +58,6 @@ public class Order extends BaseEntity {
     private LocalDateTime paidAt;
     private LocalDateTime shippedAt;
     private LocalDateTime deliveredAt;
-    private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
 
     public void changeStatus(String newStatus) {
@@ -81,11 +80,6 @@ public class Order extends BaseEntity {
     public void markAsDelivered() {
         changeStatus("DELIVERED");
         this.deliveredAt = LocalDateTime.now();
-    }
-
-    public void complete() {
-        changeStatus("COMPLETED");
-        this.completedAt = LocalDateTime.now();
     }
 
     public void cancel() {

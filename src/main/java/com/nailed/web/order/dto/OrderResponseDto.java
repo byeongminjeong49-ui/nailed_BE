@@ -76,7 +76,6 @@ public class OrderResponseDto {
                 .paidAt(order.getPaidAt())
                 .shippedAt(order.getShippedAt())
                 .deliveredAt(order.getDeliveredAt())
-                .completedAt(order.getCompletedAt())
                 .cancelledAt(order.getCancelledAt())
                 .build();
     }
