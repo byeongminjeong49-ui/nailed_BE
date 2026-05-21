@@ -279,7 +279,7 @@ public class ProductService {
         }
     }
 
-    // ── 내부 유틸 메서드 ──────────────────────────────────────
+    // ── 사이즈 검증 ──────────────────────────────────────────
 
     private void validateSize(String size, ProductGroup category) {
         String code = category.getCode();

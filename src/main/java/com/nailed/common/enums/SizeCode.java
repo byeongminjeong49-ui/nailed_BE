@@ -36,6 +36,7 @@ public enum SizeCode {
     SIZE_38 ("38", SizeType.CLOTHING),
     SIZE_39 ("39", SizeType.CLOTHING),
     SIZE_40 ("40", SizeType.CLOTHING),
+    ETC     ("기타", SizeType.CLOTHING),
 
     // ───────────── 신발 사이즈 ─────────────
     SHOE_210("210", SizeType.SHOES),
