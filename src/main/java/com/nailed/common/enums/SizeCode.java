@@ -19,6 +19,23 @@ public enum SizeCode {
     XL   ("XL",  SizeType.CLOTHING),
     XXL  ("2XL", SizeType.CLOTHING),
     XXXL ("3XL", SizeType.CLOTHING),
+    SIZE_24 ("24", SizeType.CLOTHING),
+    SIZE_25 ("25", SizeType.CLOTHING),
+    SIZE_26 ("26", SizeType.CLOTHING),
+    SIZE_27 ("27", SizeType.CLOTHING),
+    SIZE_28 ("28", SizeType.CLOTHING),
+    SIZE_29 ("29", SizeType.CLOTHING),
+    SIZE_30 ("30", SizeType.CLOTHING),
+    SIZE_31 ("31", SizeType.CLOTHING),
+    SIZE_32 ("32", SizeType.CLOTHING),
+    SIZE_33 ("33", SizeType.CLOTHING),
+    SIZE_34 ("34", SizeType.CLOTHING),
+    SIZE_35 ("35", SizeType.CLOTHING),
+    SIZE_36 ("36", SizeType.CLOTHING),
+    SIZE_37 ("37", SizeType.CLOTHING),
+    SIZE_38 ("38", SizeType.CLOTHING),
+    SIZE_39 ("39", SizeType.CLOTHING),
+    SIZE_40 ("40", SizeType.CLOTHING),
 
     // ───────────── 신발 사이즈 ─────────────
     SHOE_210("210", SizeType.SHOES),
@@ -45,7 +62,7 @@ public enum SizeCode {
     private final SizeType sizeType;
 
     public enum SizeType {
-        CLOTHING, SHOES
+        CLOTHING, SHOES, OTHER
     }
 
     public static SizeCode fromValue(String value) {

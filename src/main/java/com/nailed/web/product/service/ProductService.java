@@ -281,24 +281,19 @@ public class ProductService {
 
     // ── 내부 유틸 메서드 ──────────────────────────────────────
 
-    /**
-     * 카테고리 타입에 맞는 사이즈인지 검증
-     * - 신발(_SHOES_): 신발 사이즈(210~300)만 허용
-     * - 의류(_TOP_/_OUTER_/_BOTTOM_/_SKIRT_/_DRESS_): 의류 사이즈(OS~3XL)만 허용
-     * - 기타(가방/모자/럭셔리/액세서리 등): 사이즈 무관
-     */
     private void validateSize(String size, ProductGroup category) {
+        String code = category.getCode();
+        boolean isShoe = code.contains("_SHOES_");
+        boolean isClothing = code.contains("_TOP_") || code.contains("_OUTER_")
+                || code.contains("_BOTTOM_") || code.contains("_SKIRT_") || code.contains("_DRESS_");
+
+        // 신발·의류 외 기타 카테고리(주얼리, IT기기 등)는 사이즈 형식 검증 없음
+        if (!isShoe && !isClothing) return;
+
         SizeCode sizeCode = SizeCode.fromValue(size);
         if (sizeCode == null) {
             throw new CustomException(ErrorCode.INVALID_SIZE);
         }
-
-        String code = category.getCode();
-        boolean isShoe = code.contains("_SHOES_");
-        boolean isClothing = code.contains("_TOP_") || code.contains("_OUTER_")
-                || code.contains("_BOTTOM_") || code.contains("_SKIRT_")
-                || code.contains("_DRESS_");
-
         if (isShoe && sizeCode.getSizeType() != SizeCode.SizeType.SHOES) {
             throw new CustomException(ErrorCode.INVALID_SIZE);
         }
