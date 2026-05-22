@@ -54,6 +54,25 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
+    // ── 브랜드 목록 (비로그인 가능) ──────────────────────────
+
+    @GetMapping("/brands")
+    public ResponseEntity<ApiResponse<List<CategoryDto>>> getBrands() {
+        List<ProductGroup> groups =
+                productGroupRepository.findByGroupTypeWithParent(GroupType.BRAND);
+
+        List<CategoryDto> result = groups.stream()
+                .map(g -> new CategoryDto(
+                        g.getGroupId(),
+                        g.getCode(),
+                        g.getName(),
+                        g.getParent() != null ? g.getParent().getCode() : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
     // ── 이미지 업로드 (로그인 필요) ───────────────────────────
 
     @PostMapping("/image-upload")

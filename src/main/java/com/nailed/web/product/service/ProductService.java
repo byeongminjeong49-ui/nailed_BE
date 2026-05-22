@@ -148,7 +148,20 @@ public class ProductService {
         // 판매자 프로필 카드 구성
         ProductResponse.SellerInfo sellerInfo = buildSellerInfo(product.getSeller());
 
-        return ProductResponse.Detail.from(product, imageUrls, sellerInfo);
+        // 카테고리 전체 경로 (맨즈웨어 > 상의 > 티셔츠)
+        String categoryPath = buildCategoryPath(product.getCategory());
+
+        return ProductResponse.Detail.from(product, imageUrls, sellerInfo, categoryPath);
+    }
+
+    private String buildCategoryPath(ProductGroup category) {
+        List<String> parts = new ArrayList<>();
+        ProductGroup curr = category;
+        while (curr != null) {
+            parts.add(0, curr.getName());
+            curr = curr.getParent();
+        }
+        return String.join(" > ", parts);
     }
 
     // ── 조회수 +1 ─────────────────────────────────────────────

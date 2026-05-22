@@ -52,6 +52,7 @@ public class ProductResponse {
             String conditionLabel,
             String conditionDescription,
             String categoryName,
+            String categoryPath,        // 맨즈웨어 > 상의 > 티셔츠
             String brandName,           // 브랜드 없으면 null
             String size,
             String shippingMethod,
@@ -64,7 +65,7 @@ public class ProductResponse {
             List<String> imageUrls,     // sort_order 오름차순
             SellerInfo seller
     ) {
-        public static Detail from(Product product, List<String> imageUrls, SellerInfo seller) {
+        public static Detail from(Product product, List<String> imageUrls, SellerInfo seller, String categoryPath) {
             return new Detail(
                     product.getProductId(),
                     product.getTitle(),
@@ -73,6 +74,7 @@ public class ProductResponse {
                     product.getConditionCode().getLabel(),
                     product.getConditionCode().getDescription(),
                     product.getCategory().getName(),
+                    categoryPath,
                     product.getBrand() != null ? product.getBrand().getName() : null,
                     product.getSize(),
                     product.getShippingMethod(),
