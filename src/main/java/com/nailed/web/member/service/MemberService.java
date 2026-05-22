@@ -140,19 +140,18 @@ public class MemberService {
             statusCondition = " AND o.order_status = :status";
         }
 
-        String baseSql = """
-                FROM orders o
-                JOIN products p ON p.product_id = o.product_id
-                LEFT JOIN product_images pi
-                    ON pi.product_id = p.product_id AND pi.sort_order = 0
-                WHERE """ + ownerColumn + " = :memberId" + statusCondition;
+        String baseSql = "FROM orders o "
+                + "JOIN products p ON p.product_id = o.product_id "
+                + "LEFT JOIN product_images pi "
+                + "    ON pi.product_id = p.product_id AND pi.sort_order = 0 "
+                + "WHERE " + ownerColumn + " = :memberId" + statusCondition;
 
-        Query dataQuery = entityManager.createNativeQuery("""
-                SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id,
-                       o.product_amount, o.shipping_fee, o.final_price, o.order_status,
-                       o.cancel_request_status, o.created_at, o.paid_at, o.shipped_at,
-                       o.delivered_at, o.cancelled_at
-                """ + baseSql + " ORDER BY o.created_at DESC");
+        Query dataQuery = entityManager.createNativeQuery(
+                "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
+                + "o.product_amount, o.shipping_fee, o.final_price, o.order_status, "
+                + "o.cancel_request_status, o.created_at, o.paid_at, o.shipped_at, "
+                + "o.delivered_at, o.cancelled_at "
+                + baseSql + " ORDER BY o.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
         setMemberAndStatus(dataQuery, memberId, status);
