@@ -74,11 +74,21 @@ public class ProductController {
     }
 
     // ── 카테고리별 상품 목록 (비로그인 가능) ──────────────────
+    // categoryCode: "MENS", "MENS_OUTER" 등 코드 prefix → 하위 카테고리 전체 조회
+    // categoryId : 기존 groupId 기반 단일 카테고리 조회 (하위 호환)
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getList(
-            @RequestParam Long categoryId,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String categoryCode,
             @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        if (categoryCode != null && !categoryCode.isBlank()) {
+            return ResponseEntity.ok(ApiResponse.success(productService.getListByCode(categoryCode, pageable)));
+        }
+        if (categoryId == null) {
+            throw new com.nailed.common.exception.CustomException(
+                    com.nailed.common.exception.ErrorCode.INVALID_INPUT_VALUE);
+        }
         return ResponseEntity.ok(ApiResponse.success(productService.getList(categoryId, pageable)));
     }
 

@@ -174,6 +174,14 @@ public class ProductService {
         return toSummaryPage(page);
     }
 
+    // ── 카테고리 코드 prefix 목록 (MENS → MENS 하위 전체) ────
+
+    public PageResponse<ProductResponse.Summary> getListByCode(String categoryCode, Pageable pageable) {
+        Page<Product> page = productRepository
+                .findByCategoryCodePrefixAndProductStatusNot(categoryCode + "%", ProductStatus.DELETED, pageable);
+        return toSummaryPage(page);
+    }
+
     // ── 검색 + 다중 필터 ──────────────────────────────────────
 
     public PageResponse<ProductResponse.Summary> search(Long categoryId, String keyword,

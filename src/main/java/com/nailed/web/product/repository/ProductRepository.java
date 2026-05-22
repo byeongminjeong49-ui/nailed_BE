@@ -21,6 +21,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 카테고리별 목록 (삭제 제외)
     Page<Product> findByCategoryGroupIdAndProductStatusNot(Long groupId, ProductStatus status, Pageable pageable);
 
+    // 카테고리 코드 prefix 목록 (예: "MENS%" → MENS 하위 전체, "MENS_OUTER%" → 아우터 전체)
+    @Query("SELECT p FROM Product p WHERE p.productStatus != :deleted AND p.category.code LIKE :codePrefix")
+    Page<Product> findByCategoryCodePrefixAndProductStatusNot(
+            @Param("codePrefix") String codePrefix,
+            @Param("deleted") ProductStatus deleted,
+            Pageable pageable);
+
     // 내 판매 상품 - 특정 상태
     Page<Product> findBySellerMemberIdAndProductStatus(String memberId, ProductStatus status, Pageable pageable);
 
