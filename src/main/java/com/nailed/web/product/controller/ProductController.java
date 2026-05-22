@@ -1,10 +1,13 @@
 package com.nailed.web.product.controller;
 
+import com.nailed.common.enums.GroupType;
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.SecurityUtil;
 import com.nailed.web.product.dto.ProductRequest;
 import com.nailed.web.product.dto.ProductResponse;
+import com.nailed.web.product.entity.ProductGroup;
+import com.nailed.web.product.repository.ProductGroupRepository;
 import com.nailed.web.product.service.ProductService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -27,6 +31,28 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+    private final ProductGroupRepository productGroupRepository;
+
+    // ── 카테고리 목록 (비로그인 가능) ────────────────────────
+
+    public record CategoryDto(Long groupId, String code, String name, String parentCode) {}
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<CategoryDto>>> getCategories() {
+        List<ProductGroup> groups =
+                productGroupRepository.findByGroupTypeWithParent(GroupType.CATEGORY);
+
+        List<CategoryDto> result = groups.stream()
+                .map(g -> new CategoryDto(
+                        g.getGroupId(),
+                        g.getCode(),
+                        g.getName(),
+                        g.getParent() != null ? g.getParent().getCode() : null
+                ))
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
 
     // ── 이미지 업로드 (로그인 필요) ───────────────────────────
 
