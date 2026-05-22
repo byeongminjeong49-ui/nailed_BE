@@ -17,7 +17,10 @@ public class ProductResponse {
             int wishlistCount,
             String thumbnailUrl,        // sort_order=0 이미지 URL (null 가능)
             String productStatus,       // ON_SALE / RESERVED / SOLD
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String brandCode,           // BRAND_NIKE / LUXURY_GUCCI 등 (브랜드 없으면 null)
+            String brandName,           // DB 표시명 (null 가능)
+            String size                 // 사이즈 (null 가능)
     ) {
         public static Summary from(Product product, String thumbnailUrl) {
             return new Summary(
@@ -29,7 +32,10 @@ public class ProductResponse {
                     product.getWishlistCount(),
                     thumbnailUrl,
                     product.getProductStatus().name(),
-                    product.getCreatedAt()
+                    product.getCreatedAt(),
+                    product.getBrand() != null ? product.getBrand().getCode() : null,
+                    product.getBrand() != null ? product.getBrand().getName() : null,
+                    product.getSize()
             );
         }
     }

@@ -125,6 +125,14 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(productService.getPopularProducts()));
     }
 
+    // ── 메인 카테고리 랜덤 상품 (비로그인 가능) ─────────────
+
+    @GetMapping("/random")
+    public ResponseEntity<ApiResponse<List<ProductResponse.Summary>>> getRandomProducts(
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success(productService.getRandomProducts(size)));
+    }
+
     // ── 검색 + 필터 (비로그인 가능) ──────────────────────────
 
     @GetMapping("/search")
@@ -187,6 +195,16 @@ public class ProductController {
         String sellerId = SecurityUtil.getCurrentMemberId();
         productService.update(productId, sellerId, request);
         return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    // ── 판매자의 다른 상품 (비로그인 가능) ────────────────────
+
+    @GetMapping("/seller/{sellerId}")
+    public ResponseEntity<ApiResponse<List<ProductResponse.Summary>>> getSellerProducts(
+            @PathVariable String sellerId,
+            @RequestParam(required = false) Long exclude) {
+        return ResponseEntity.ok(ApiResponse.success(
+                productService.getSellerProducts(sellerId, exclude != null ? exclude : -1L)));
     }
 
     // ── 상품 삭제 (본인만 가능, 소프트 삭제) ─────────────────

@@ -224,6 +224,14 @@ public class ProductService {
         return toSummaryPage(page);
     }
 
+    // ── 판매자의 다른 상품 최대 5개 ──────────────────────────
+
+    public List<ProductResponse.Summary> getSellerProducts(String sellerId, Long excludeId) {
+        Pageable pageable = PageRequest.of(0, 5, Sort.by("createdAt").descending());
+        List<Product> products = productRepository.findSellerProducts(sellerId, excludeId, ProductStatus.DELETED, pageable);
+        return toSummaryList(products);
+    }
+
     // ── 홈 추천: 최신 6개 ────────────────────────────────────
 
     public List<ProductResponse.Summary> getNewProducts() {
@@ -237,6 +245,13 @@ public class ProductService {
     public List<ProductResponse.Summary> getPopularProducts() {
         List<Product> products = productRepository.findPopularTop10(ProductStatus.ON_SALE.name());
         return toSummaryList(products);
+    }
+
+    // ── 메인 카테고리 랜덤 10개 (상세 페이지 하단) ───────────
+
+    public List<ProductResponse.Summary> getRandomProducts(int size) {
+        List<Product> products = productRepository.findRandomProducts();
+        return toSummaryList(products.stream().limit(size).toList());
     }
 
     // ── 상품 수정 ─────────────────────────────────────────────

@@ -42,6 +42,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     int incrementViewCount(@Param("productId") Long productId,
                            @Param("deleted") ProductStatus deleted);
 
+    // 판매자의 다른 상품 (현재 상품 제외, 최신순)
+    @Query("SELECT p FROM Product p WHERE p.seller.memberId = :sellerId AND p.productId != :excludeId AND p.productStatus != :deleted ORDER BY p.createdAt DESC")
+    List<Product> findSellerProducts(@Param("sellerId") String sellerId,
+                                     @Param("excludeId") Long excludeId,
+                                     @Param("deleted") ProductStatus deleted,
+                                     Pageable pageable);
+
     // 홈 추천: 최신 ON_SALE 6개
     List<Product> findTop6ByProductStatusOrderByCreatedAtDesc(ProductStatus status);
 
@@ -76,6 +83,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                          @Param("conditionCode") ProductCondition conditionCode,
                          @Param("size") String size,
                          Pageable pageable);
+
+    // 5개 메인 카테고리(MENS/WOMENS/LUXURY/ACC/IT) ON_SALE 랜덤 최대 50개
+    // LIMIT에 named parameter 불가(MySQL 제약) → 고정 50으로 뽑고 서비스에서 slice
+    @Query(value = "SELECT * FROM products " +
+                   "WHERE product_status = 'ON_SALE' " +
+                   "AND category_id IN (" +
+                   "    SELECT group_id FROM product_groups " +
+                   "    WHERE code LIKE 'MENS%' OR code LIKE 'WOMENS%' " +
+                   "    OR code LIKE 'LUXURY%' OR code LIKE 'ACC%' OR code LIKE 'IT%'" +
+                   ") ORDER BY RAND() LIMIT 50",
+           nativeQuery = true)
+    List<Product> findRandomProducts();
 
     // 인기순 전용 쿼리 (조회수×1 + 찜수×3)
     @Query(value = "SELECT p FROM Product p WHERE p.productStatus = :onSale " +
