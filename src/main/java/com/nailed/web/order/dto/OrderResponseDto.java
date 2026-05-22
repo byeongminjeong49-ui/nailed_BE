@@ -43,7 +43,6 @@ public class OrderResponseDto {
     private LocalDateTime paidAt;
     private LocalDateTime shippedAt;
     private LocalDateTime deliveredAt;
-    private LocalDateTime completedAt;
     private LocalDateTime cancelledAt;
 
     public static OrderResponseDto from(Order order) {

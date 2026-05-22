@@ -18,14 +18,14 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
     // 찜 취소 시 삭제 대상 단건 조회
     Optional<Wishlist> findByMemberMemberIdAndProductProductId(String memberId, Long productId);
 
-    // 내 찜 목록 (최근 찜 순)
+    // 내 찜 목록 (등록 순)
     // JOIN FETCH 로 Product 를 한 번에 로딩 → N+1 방지
     // countQuery 분리 → 페이징 카운트 쿼리에서 불필요한 JOIN 제거
     // DELETED 상품 제외, SOLD 는 포함(거래완료 배지 노출)
     @Query(value = "SELECT w FROM Wishlist w JOIN FETCH w.product p " +
                    "WHERE w.member.memberId = :memberId " +
                    "AND p.productStatus <> :deleted " +
-                   "ORDER BY w.createdAt DESC",
+                   "ORDER BY w.wishlistId DESC",
            countQuery = "SELECT COUNT(w) FROM Wishlist w " +
                         "WHERE w.member.memberId = :memberId " +
                         "AND w.product.productStatus <> :deleted")

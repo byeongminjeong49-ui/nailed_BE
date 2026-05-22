@@ -85,7 +85,7 @@ public class WishlistService {
 
     /**
      * 마이페이지(nld-904) 위시리스트 조회
-     * - 최근 찜 순 정렬 (WishlistRepository.findMyWishlist 의 ORDER BY 사용)
+     * - wishlist_id 내림차순 정렬 (WishlistRepository.findMyWishlist 의 ORDER BY 사용)
      * - DELETED 상품은 제외, SOLD 는 포함되어 '거래완료' 배지 노출
      * - ProductResponse.Summary 재사용 + 썸네일 배치 조회 (N+1 방지)
      */

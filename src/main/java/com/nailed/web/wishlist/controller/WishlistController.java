@@ -7,7 +7,6 @@ import com.nailed.web.product.dto.ProductResponse;
 import com.nailed.web.wishlist.service.WishlistService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -49,7 +48,7 @@ public class WishlistController {
 
     @GetMapping("/api/members/mypage/wishlist")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getMyWishlist(
-            @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+            @PageableDefault(size = 15) Pageable pageable) {
         String memberId = SecurityUtil.getCurrentMemberId();
         return ResponseEntity.ok(ApiResponse.success(wishlistService.getMyWishlist(memberId, pageable)));
     }

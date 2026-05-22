@@ -129,60 +129,6 @@ public class MemberService {
         return PageResponse.of(new PageImpl<>(content, pageable, number(countQuery.getSingleResult()).longValue()));
     }
 
-    public PageResponse<MemberResponse.WishlistItem> getMyWishlist(String memberId, Pageable pageable) {
-        ensureMemberExists(memberId);
-
-        String baseSql = """
-                FROM wishlists w
-                JOIN products p ON p.product_id = w.product_id
-                JOIN members s ON s.member_id = p.seller_id
-                LEFT JOIN product_images pi
-                    ON pi.product_id = p.product_id AND pi.sort_order = 0
-                WHERE w.member_id = :memberId
-                  AND p.product_status <> 'DELETED'
-                """;
-
-        Query dataQuery = entityManager.createNativeQuery("""
-                SELECT w.wishlist_id, p.product_id, p.title, p.price, p.condition_code,
-                       p.product_status, p.seller_id, s.nickname, pi.image_url, w.created_at
-                """ + baseSql + " ORDER BY w.created_at DESC");
-        Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
-
-        dataQuery.setParameter("memberId", memberId);
-        countQuery.setParameter("memberId", memberId);
-        applyPage(dataQuery, pageable);
-
-        List<MemberResponse.WishlistItem> content = rows(dataQuery).stream()
-                .map(this::toWishlistItem)
-                .toList();
-        return PageResponse.of(new PageImpl<>(content, pageable, number(countQuery.getSingleResult()).longValue()));
-    }
-
-    @Transactional
-    public void deleteWishlist(String memberId, Long productId) {
-        ensureMemberExists(memberId);
-
-        int deleted = entityManager.createNativeQuery("""
-                DELETE FROM wishlists
-                WHERE member_id = :memberId AND product_id = :productId
-                """)
-                .setParameter("memberId", memberId)
-                .setParameter("productId", productId)
-                .executeUpdate();
-
-        if (deleted == 0) {
-            throw new CustomException(ErrorCode.WISHLIST_NOT_FOUND);
-        }
-
-        entityManager.createNativeQuery("""
-                UPDATE products
-                SET wishlist_count = GREATEST(wishlist_count - 1, 0)
-                WHERE product_id = :productId
-                """)
-                .setParameter("productId", productId)
-                .executeUpdate();
-    }
-
     public PageResponse<MemberResponse.OrderSummary> getMyOrders(
             String memberId, String type, String status, Pageable pageable) {
         ensureMemberExists(memberId);
@@ -205,7 +151,7 @@ public class MemberService {
                 SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id,
                        o.product_amount, o.shipping_fee, o.final_price, o.order_status,
                        o.cancel_request_status, o.created_at, o.paid_at, o.shipped_at,
-                       o.delivered_at, o.completed_at, o.cancelled_at
+                       o.delivered_at, o.cancelled_at
                 """ + baseSql + " ORDER BY o.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -236,7 +182,7 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT o.order_id, o.product_id, p.title, o.commission, o.final_price,
-                       o.seller_settlement_amount, o.order_status, o.completed_at, o.created_at
+                       o.seller_settlement_amount, o.order_status, o.created_at
                 """ + baseSql + " ORDER BY o.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -364,21 +310,6 @@ public class MemberService {
         );
     }
 
-    private MemberResponse.WishlistItem toWishlistItem(Object[] row) {
-        return new MemberResponse.WishlistItem(
-                number(row[0]).longValue(),
-                number(row[1]).longValue(),
-                string(row[2]),
-                number(row[3]).intValue(),
-                string(row[4]),
-                string(row[5]),
-                string(row[6]),
-                string(row[7]),
-                string(row[8]),
-                time(row[9])
-        );
-    }
-
     private MemberResponse.OrderSummary toOrderSummary(Object[] row) {
         return new MemberResponse.OrderSummary(
                 string(row[0]),
@@ -396,8 +327,7 @@ public class MemberService {
                 time(row[12]),
                 time(row[13]),
                 time(row[14]),
-                time(row[15]),
-                time(row[16])
+                time(row[15])
         );
     }
 
@@ -410,8 +340,7 @@ public class MemberService {
                 number(row[4]).intValue(),
                 number(row[5]).intValue(),
                 string(row[6]),
-                time(row[7]),
-                time(row[8])
+                time(row[7])
         );
     }
 

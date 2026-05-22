@@ -28,17 +28,17 @@ public class ReviewService {
 
     /**
      * 리뷰 작성
-     * - 구매 확정(COMPLETED) 상태의 주문에 대해서만 작성 가능
+     * - 배송 완료(DELIVERED) 상태의 주문에 대해서만 작성 가능
      * - 주문의 구매자 본인만 작성 가능
      * - 주문당 1개 제한 (UNIQUE 제약 + 사전 중복 체크)
      */
     @Transactional
     public ReviewResponse.Detail write(String buyerId, ReviewRequest.Write req) {
-        // 리뷰 가능 여부 검증 (완료된 주문 + 해당 구매자 본인 + 중복 방지)
+        // 리뷰 가능 여부 검증 (배송 완료 주문 + 해당 구매자 본인 + 중복 방지)
         Order order = orderRepository.findById(req.orderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
-        if (!"COMPLETED".equals(order.getOrderStatus())) {
+        if (!"DELIVERED".equals(order.getOrderStatus())) {
             throw new CustomException(ErrorCode.REVIEW_NOT_ALLOWED);
         }
 

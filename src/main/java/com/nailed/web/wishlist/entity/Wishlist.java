@@ -1,6 +1,5 @@
 package com.nailed.web.wishlist.entity;
 
-import com.nailed.common.entity.CreatedOnlyEntity;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.product.entity.Product;
 import jakarta.persistence.*;
@@ -8,7 +7,6 @@ import lombok.*;
 
 /**
  * 찜 엔티티 (wishlists 테이블)
- * - CreatedOnlyEntity 상속 → created_at 자동 관리 (updated_at 없음)
  * - UK (member_id, product_id) 로 동일 회원의 중복 찜 차단
  * - 찜수(products.wishlist_count) 는 WishlistService 에서 별도 동기화
  */
@@ -24,7 +22,7 @@ import lombok.*;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder
-public class Wishlist extends CreatedOnlyEntity {
+public class Wishlist {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

@@ -40,19 +40,6 @@ public class MemberResponse {
             LocalDateTime createdAt
     ) {}
 
-    public record WishlistItem(
-            Long wishlistId,
-            Long productId,
-            String title,
-            int price,
-            String conditionCode,
-            String productStatus,
-            String sellerId,
-            String sellerNickname,
-            String thumbnailUrl,
-            LocalDateTime createdAt
-    ) {}
-
     public record OrderSummary(
             String orderId,
             Long productId,
@@ -69,7 +56,6 @@ public class MemberResponse {
             LocalDateTime paidAt,
             LocalDateTime shippedAt,
             LocalDateTime deliveredAt,
-            LocalDateTime completedAt,
             LocalDateTime cancelledAt
     ) {}
 
@@ -81,7 +67,6 @@ public class MemberResponse {
             int finalPrice,
             int sellerSettlementAmount,
             String orderStatus,
-            LocalDateTime completedAt,
             LocalDateTime createdAt
     ) {}
 
