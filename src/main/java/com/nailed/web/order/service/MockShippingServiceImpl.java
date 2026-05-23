@@ -20,7 +20,7 @@ public class MockShippingServiceImpl implements ShippingService {
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
         Order order = findOrder(orderId);
 
-        if (!"PAID".equals(order.getOrderStatus()) && !"REQUESTED".equals(order.getOrderStatus())) {
+        if (!"PAID".equals(order.getOrderStatus())) {
             throw new IllegalStateException("결제 완료 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
 
@@ -32,12 +32,12 @@ public class MockShippingServiceImpl implements ShippingService {
     @Override
     public OrderResponseDto confirmDelivery(String orderId) {
         Order order = findOrder(orderId);
-
         if (!"SHIPPING".equals(order.getOrderStatus())) {
             throw new IllegalStateException("배송 중 상태의 주문만 배송 완료 처리할 수 있습니다.");
         }
-
-        order.markAsDelivered();
+        order.markAsDelivered(); // DELIVERED + deliveredAt 기록
+        // seller_settlement_amount는 이미 주문 생성 시 계산됨
+        // DELIVERED = 정산 확정 (안전결제 에스크로 해제 시점)
         return OrderResponseDto.from(orderRepository.save(order));
     }
 

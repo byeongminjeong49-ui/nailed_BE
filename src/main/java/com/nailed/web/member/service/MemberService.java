@@ -177,6 +177,7 @@ public class MemberService {
                 FROM orders o
                 JOIN products p ON p.product_id = o.product_id
                 WHERE o.seller_id = :memberId
+                  AND o.order_status NOT IN ('REQUESTED', 'CANCELLED')
                 """ + statusCondition;
 
         Query dataQuery = entityManager.createNativeQuery("""
