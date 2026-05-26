@@ -238,6 +238,16 @@ public class ProductService {
         return toSummaryList(products);
     }
 
+    // ── 같은 카테고리 "비슷한 상품" 최대 N개 ────────────────
+
+    public List<ProductResponse.Summary> getRelatedProducts(Long productId, int size) {
+        Product product = findActiveProduct(productId);
+        Pageable pageable = PageRequest.of(0, size);
+        List<Product> products = productRepository.findRelatedProducts(
+                product.getCategory().getGroupId(), productId, ProductStatus.ON_SALE, pageable);
+        return toSummaryList(products);
+    }
+
     // ── 홈 추천: 최신 6개 ────────────────────────────────────
 
     public List<ProductResponse.Summary> getNewProducts() {

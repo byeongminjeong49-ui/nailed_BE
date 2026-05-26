@@ -58,6 +58,7 @@ public class ProductResponse {
             String conditionLabel,
             String conditionDescription,
             String categoryName,
+            String categoryCode,        // product_groups.code (예: MENS_TOP_TSHIRT)
             String categoryPath,        // 맨즈웨어 > 상의 > 티셔츠
             String brandName,           // 브랜드 없으면 null
             String size,
@@ -81,6 +82,7 @@ public class ProductResponse {
                     product.getConditionCode().getLabel(),
                     product.getConditionCode().getDescription(),
                     product.getCategory().getName(),
+                    product.getCategory().getCode(),
                     categoryPath,
                     product.getBrand() != null ? product.getBrand().getName() : null,
                     product.getSize(),

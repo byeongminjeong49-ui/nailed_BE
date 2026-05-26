@@ -208,6 +208,16 @@ public class ProductController {
                 productService.getSellerProducts(sellerId, exclude != null ? exclude : -1L)));
     }
 
+    // ── 같은 카테고리 "비슷한 상품" (비로그인 가능) ──────────
+
+    @GetMapping("/{productId}/related")
+    public ResponseEntity<ApiResponse<List<ProductResponse.Summary>>> getRelatedProducts(
+            @PathVariable Long productId,
+            @RequestParam(defaultValue = "5") int size) {
+        return ResponseEntity.ok(ApiResponse.success(
+                productService.getRelatedProducts(productId, size)));
+    }
+
     // ── 상품 삭제 (본인만 가능, 소프트 삭제) ─────────────────
 
     @DeleteMapping("/{productId}")

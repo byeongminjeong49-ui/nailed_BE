@@ -49,6 +49,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                      @Param("deleted") ProductStatus deleted,
                                      Pageable pageable);
 
+    // 같은 카테고리 다른 상품 (현재 상품 제외, ON_SALE만, 최신순) — "비슷한 상품" 섹션
+    @Query("SELECT p FROM Product p WHERE p.category.groupId = :categoryId AND p.productId != :excludeId AND p.productStatus = :onSale ORDER BY p.createdAt DESC")
+    List<Product> findRelatedProducts(@Param("categoryId") Long categoryId,
+                                      @Param("excludeId") Long excludeId,
+                                      @Param("onSale") ProductStatus onSale,
+                                      Pageable pageable);
+
     // 홈 추천: 최신 ON_SALE 6개
     List<Product> findTop6ByProductStatusOrderByCreatedAtDesc(ProductStatus status);
 
