@@ -33,4 +33,17 @@ public class SecurityUtil {
         }
         return memberId;
     }
+
+    public static String getCurrentMemberIdOrNull() {
+        try {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null || !authentication.isAuthenticated()) return null;
+            Object principal = authentication.getPrincipal();
+            if (principal == null) return null;
+            String memberId = principal instanceof String s ? s : principal.toString();
+            return memberId.isBlank() || "anonymousUser".equals(memberId) ? null : memberId;
+        } catch (Exception e) {
+            return null;
+        }
+    }
 }

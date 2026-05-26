@@ -155,7 +155,8 @@ public class ProductController {
     @GetMapping("/{productId}")
     public ResponseEntity<ApiResponse<ProductResponse.Detail>> getDetail(
             @PathVariable Long productId) {
-        return ResponseEntity.ok(ApiResponse.success(productService.getDetail(productId)));
+        String memberId = SecurityUtil.getCurrentMemberIdOrNull();
+        return ResponseEntity.ok(ApiResponse.success(productService.getDetail(productId, memberId)));
     }
 
     // ── 조회수 +1 (비로그인 가능, 세션 쿠키로 중복 방지) ──────

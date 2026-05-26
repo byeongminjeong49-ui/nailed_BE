@@ -20,6 +20,7 @@ import com.nailed.web.product.repository.ProductGroupRepository;
 import com.nailed.web.product.repository.ProductImageRepository;
 import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.review.repository.ReviewRepository;
+import com.nailed.web.wishlist.repository.WishlistRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -53,6 +54,7 @@ public class ProductService {
     private final MemberRepository memberRepository;
     private final OrderRepository orderRepository;
     private final ReviewRepository reviewRepository;
+    private final WishlistRepository wishlistRepository;
 
     // application.properties에 file.upload.path 미정의 시 기본 경로 사용
     @Value("${file.upload.path:uploads}")
@@ -135,7 +137,7 @@ public class ProductService {
 
     // ── 상품 카드 클릭 → 상세 페이지 데이터 조회 ─────────────
 
-    public ProductResponse.Detail getDetail(Long productId) {
+    public ProductResponse.Detail getDetail(Long productId, String memberId) {
         Product product = findActiveProduct(productId);
 
         // 이미지 목록 (sort_order 순)
@@ -151,7 +153,11 @@ public class ProductService {
         // 카테고리 전체 경로 (맨즈웨어 > 상의 > 티셔츠)
         String categoryPath = buildCategoryPath(product.getCategory());
 
-        return ProductResponse.Detail.from(product, imageUrls, sellerInfo, categoryPath);
+        // 현재 로그인 유저의 찜 여부 (비로그인이면 false)
+        boolean isWishlisted = memberId != null &&
+                wishlistRepository.existsByMemberMemberIdAndProductProductId(memberId, productId);
+
+        return ProductResponse.Detail.from(product, imageUrls, sellerInfo, categoryPath, isWishlisted);
     }
 
     private String buildCategoryPath(ProductGroup category) {

@@ -69,9 +69,10 @@ public class ProductResponse {
             String hashtags,
             LocalDateTime createdAt,
             List<String> imageUrls,     // sort_order 오름차순
-            SellerInfo seller
+            SellerInfo seller,
+            boolean isWishlisted        // 현재 로그인 유저의 찜 여부 (비로그인 false)
     ) {
-        public static Detail from(Product product, List<String> imageUrls, SellerInfo seller, String categoryPath) {
+        public static Detail from(Product product, List<String> imageUrls, SellerInfo seller, String categoryPath, boolean isWishlisted) {
             return new Detail(
                     product.getProductId(),
                     product.getTitle(),
@@ -91,7 +92,8 @@ public class ProductResponse {
                     product.getHashtags(),
                     product.getCreatedAt(),
                     imageUrls,
-                    seller
+                    seller,
+                    isWishlisted
             );
         }
     }
