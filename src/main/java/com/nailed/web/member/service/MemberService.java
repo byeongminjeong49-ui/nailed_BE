@@ -176,13 +176,15 @@ public class MemberService {
         String baseSql = """
                 FROM orders o
                 JOIN products p ON p.product_id = o.product_id
+                LEFT JOIN product_images pi
+                    ON pi.product_id = p.product_id AND pi.sort_order = 0
                 WHERE o.seller_id = :memberId
                   AND o.order_status NOT IN ('REQUESTED', 'CANCELLED')
                 """ + statusCondition;
 
         Query dataQuery = entityManager.createNativeQuery("""
-                SELECT o.order_id, o.product_id, p.title, o.commission, o.final_price,
-                       o.seller_settlement_amount, o.order_status, o.created_at
+                SELECT o.order_id, o.product_id, p.title, pi.image_url, o.commission,
+                       o.final_price, o.seller_settlement_amount, o.order_status, o.created_at
                 """ + baseSql + " ORDER BY o.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -336,11 +338,12 @@ public class MemberService {
                 string(row[0]),
                 number(row[1]).longValue(),
                 string(row[2]),
-                number(row[3]).intValue(),
+                string(row[3]),
                 number(row[4]).intValue(),
                 number(row[5]).intValue(),
-                string(row[6]),
-                time(row[7])
+                number(row[6]).intValue(),
+                string(row[7]),
+                time(row[8])
         );
     }
 

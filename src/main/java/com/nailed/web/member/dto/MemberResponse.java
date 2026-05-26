@@ -63,6 +63,7 @@ public class MemberResponse {
             String orderId,
             Long productId,
             String productTitle,
+            String thumbnailUrl,
             int commission,
             int finalPrice,
             int sellerSettlementAmount,
