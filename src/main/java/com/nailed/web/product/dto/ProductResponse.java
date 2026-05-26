@@ -20,6 +20,7 @@ public class ProductResponse {
             LocalDateTime createdAt,
             String brandCode,           // BRAND_NIKE / LUXURY_GUCCI 등 (브랜드 없으면 null)
             String brandName,           // DB 표시명 (null 가능)
+            String categoryCode,
             String size                 // 사이즈 (null 가능)
     ) {
         public static Summary from(Product product, String thumbnailUrl) {
@@ -35,6 +36,7 @@ public class ProductResponse {
                     product.getCreatedAt(),
                     product.getBrand() != null ? product.getBrand().getCode() : null,
                     product.getBrand() != null ? product.getBrand().getName() : null,
+                    product.getCategory() != null ? product.getCategory().getCode() : null,
                     product.getSize()
             );
         }

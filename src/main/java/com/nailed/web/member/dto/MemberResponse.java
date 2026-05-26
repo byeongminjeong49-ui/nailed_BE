@@ -37,6 +37,9 @@ public class MemberResponse {
             int viewCount,
             int wishlistCount,
             String thumbnailUrl,
+            String size,
+            String categoryCode,
+            String brandName,
             LocalDateTime createdAt
     ) {}
 

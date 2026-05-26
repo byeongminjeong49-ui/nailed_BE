@@ -107,6 +107,10 @@ public class MemberService {
 
         String baseSql = """
                 FROM products p
+                LEFT JOIN product_groups cg
+                    ON cg.group_id = p.category_id
+                LEFT JOIN product_groups bg
+                    ON bg.group_id = p.brand_id
                 LEFT JOIN product_images pi
                     ON pi.product_id = p.product_id AND pi.sort_order = 0
                 WHERE p.seller_id = :memberId
@@ -115,7 +119,7 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT p.product_id, p.title, p.price, p.condition_code, p.product_status,
-                       p.view_count, p.wishlist_count, pi.image_url, p.created_at
+                       p.view_count, p.wishlist_count, pi.image_url, p.size, cg.code, bg.name, p.created_at
                 """ + baseSql + " ORDER BY p.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -308,7 +312,10 @@ public class MemberService {
                 number(row[5]).intValue(),
                 number(row[6]).intValue(),
                 string(row[7]),
-                time(row[8])
+                string(row[8]),
+                string(row[9]),
+                string(row[10]),
+                time(row[11])
         );
     }
 
