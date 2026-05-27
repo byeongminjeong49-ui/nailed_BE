@@ -25,7 +25,8 @@ public class MemberResponse {
             String accountNumber,
             String depositorName,
             boolean marketingAgreed,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String profileImageUrl
     ) {}
 
     public record ProductSummary(
@@ -34,6 +35,8 @@ public class MemberResponse {
             int price,
             String conditionCode,
             String productStatus,
+            String orderStatus,
+            boolean isSold,
             int viewCount,
             int wishlistCount,
             String thumbnailUrl,

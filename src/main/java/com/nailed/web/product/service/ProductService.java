@@ -48,6 +48,12 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ProductService {
 
+    private static final List<String> SELLER_GRADE_TARGET_STATUSES = List.of(
+            OrderStatus.PAID.name(),
+            OrderStatus.SHIPPING.name(),
+            OrderStatus.DELIVERED.name()
+    );
+
     private final ProductRepository productRepository;
     private final ProductGroupRepository productGroupRepository;
     private final ProductImageRepository productImageRepository;
@@ -388,8 +394,8 @@ public class ProductService {
 
     /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
-    	long completedCount = orderRepository.countBySellerIdAndOrderStatus(
-    	        seller.getMemberId(), OrderStatus.DELIVERED.name());
+    	long completedCount = orderRepository.countBySellerIdAndOrderStatusIn(
+    	        seller.getMemberId(), SELLER_GRADE_TARGET_STATUSES);
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);

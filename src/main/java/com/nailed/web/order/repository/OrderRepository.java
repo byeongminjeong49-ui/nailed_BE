@@ -11,5 +11,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     long countBySellerIdAndOrderStatus(String sellerId, String orderStatus);
 
     // 특정 상품의 진행중 거래 존재 여부 → 상품 삭제 불가 체크용
+    long countBySellerIdAndOrderStatusIn(String sellerId, List<String> orderStatuses);
+
     boolean existsByProductIdAndOrderStatusIn(Long productId, List<String> statuses);
 }

@@ -3,6 +3,7 @@ package com.nailed.web.order.service;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.member.service.SellerGradeService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class MockShippingServiceImpl implements ShippingService {
 
     private final OrderRepository orderRepository;
+    private final SellerGradeService sellerGradeService;
 
     // 운송장 등록 — PAID 상태인 주문만 가능
     @Override
@@ -38,7 +40,9 @@ public class MockShippingServiceImpl implements ShippingService {
         order.markAsDelivered(); // DELIVERED + deliveredAt 기록
         // seller_settlement_amount는 이미 주문 생성 시 계산됨
         // DELIVERED = 정산 확정 (안전결제 에스크로 해제 시점)
-        return OrderResponseDto.from(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
+        return OrderResponseDto.from(savedOrder);
     }
 
     private Order findOrder(String orderId) {

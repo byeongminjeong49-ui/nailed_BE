@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -27,7 +28,10 @@ import java.util.List;
 @Transactional(readOnly = true)
 public class MemberService {
 
+    private static final String DEFAULT_PROFILE_IMAGE_URL = "/images/profileImg/default-profile.png";
+
     private final MemberRepository memberRepository;
+    private final ProfileImageStorageService profileImageStorageService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -39,8 +43,9 @@ public class MemberService {
                 WHERE seller_id = :memberId AND product_status NOT IN ('DELETED', 'SOLD')
                 """, memberId);
         long soldProductCount = count("""
-                SELECT COUNT(*) FROM products
-                WHERE seller_id = :memberId AND product_status = 'SOLD'
+                SELECT COUNT(*) FROM orders
+                WHERE seller_id = :memberId
+                  AND order_status IN ('SHIPPING', 'DELIVERED')
                 """, memberId);
         long wishlistCount = count("""
                 SELECT COUNT(*) FROM wishlists
@@ -97,6 +102,25 @@ public class MemberService {
         return getProfile(memberId);
     }
 
+    @Transactional
+    public MemberResponse.Profile updateProfileImage(String memberId, MultipartFile file) {
+        ensureMemberExists(memberId);
+
+        String profileImageUrl = profileImageStorageService.store(memberId, file);
+        entityManager.createNativeQuery("""
+                UPDATE members
+                SET profile_image_url = :profileImageUrl
+                WHERE member_id = :memberId
+                """)
+                .setParameter("profileImageUrl", profileImageUrl)
+                .setParameter("memberId", memberId)
+                .executeUpdate();
+
+        entityManager.flush();
+        entityManager.clear();
+        return getProfile(memberId);
+    }
+
     public PageResponse<MemberResponse.ProductSummary> getMyProducts(String memberId, String status, Pageable pageable) {
         ensureMemberExists(memberId);
 
@@ -119,6 +143,22 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT p.product_id, p.title, p.price, p.condition_code, p.product_status,
+                       (
+                           SELECT o.order_status
+                           FROM orders o
+                           WHERE o.product_id = p.product_id
+                             AND o.seller_id = :memberId
+                             AND o.order_status IN ('SHIPPING', 'DELIVERED')
+                           ORDER BY FIELD(o.order_status, 'DELIVERED', 'SHIPPING')
+                           LIMIT 1
+                       ) AS order_status,
+                       EXISTS (
+                           SELECT 1
+                           FROM orders o
+                           WHERE o.product_id = p.product_id
+                             AND o.seller_id = :memberId
+                             AND o.order_status IN ('SHIPPING', 'DELIVERED')
+                       ) AS is_sold,
                        p.view_count, p.wishlist_count, pi.image_url, p.size, cg.code, bg.name, p.created_at
                 """ + baseSql + " ORDER BY p.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
@@ -183,7 +223,7 @@ public class MemberService {
                 LEFT JOIN product_images pi
                     ON pi.product_id = p.product_id AND pi.sort_order = 0
                 WHERE o.seller_id = :memberId
-                  AND o.order_status NOT IN ('REQUESTED', 'CANCELLED')
+                  AND o.order_status IN ('SHIPPING', 'DELIVERED')
                 """ + statusCondition;
 
         Query dataQuery = entityManager.createNativeQuery("""
@@ -226,7 +266,7 @@ public class MemberService {
         List<?> result = entityManager.createNativeQuery("""
                 SELECT member_id, userid, nickname, name, shop_info, member_status,
                        seller_grade, role, bank_code, account_number, depositor_name,
-                       marketing_agreed, created_at
+                       marketing_agreed, created_at, profile_image_url
                 FROM members
                 WHERE member_id = :memberId
                 """)
@@ -298,7 +338,8 @@ public class MemberService {
                 string(row[9]),
                 string(row[10]),
                 bool(row[11]),
-                time(row[12])
+                time(row[12]),
+                profileImageUrl(row[13])
         );
     }
 
@@ -309,13 +350,15 @@ public class MemberService {
                 number(row[2]).intValue(),
                 string(row[3]),
                 string(row[4]),
-                number(row[5]).intValue(),
-                number(row[6]).intValue(),
-                string(row[7]),
-                string(row[8]),
+                string(row[5]),
+                bool(row[6]),
+                number(row[7]).intValue(),
+                number(row[8]).intValue(),
                 string(row[9]),
                 string(row[10]),
-                time(row[11])
+                string(row[11]),
+                string(row[12]),
+                time(row[13])
         );
     }
 
@@ -384,5 +427,10 @@ public class MemberService {
 
     private String blankToNull(String value) {
         return value != null && !value.isBlank() ? value : null;
+    }
+
+    private String profileImageUrl(Object value) {
+        String url = string(value);
+        return url != null && !url.isBlank() ? url : DEFAULT_PROFILE_IMAGE_URL;
     }
 }

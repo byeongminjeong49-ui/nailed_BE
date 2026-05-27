@@ -9,7 +9,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.nailed.web.product.repository.ProductRepository;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +19,6 @@ public class OrderServiceImpl implements OrderService {
     private static final int DEFAULT_COMMISSION_RATE = 2;
 
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
     
     @Override
     @Transactional
@@ -70,11 +68,7 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
         order.markAsPaid(); 
         
-        productRepository.findById(order.getProductId()).ifPresent(product -> {
-            product.completeSale();
-        });
-        
-        return OrderResponseDto.from(order);
+        return OrderResponseDto.from(orderRepository.save(order));
     }
 
     private String generateOrderId() {
