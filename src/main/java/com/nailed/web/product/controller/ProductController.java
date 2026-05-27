@@ -142,12 +142,12 @@ public class ProductController {
             @RequestParam(required = false) Integer minPrice,
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) String conditionCode,
-            @RequestParam(required = false) String size,
+            @RequestParam(required = false) String productSize,
             @RequestParam(required = false, defaultValue = "latest") String sortBy,
             @PageableDefault(size = 15) Pageable pageable) {
 
         return ResponseEntity.ok(ApiResponse.success(
-                productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, size, sortBy, pageable)));
+                productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, productSize, sortBy, pageable)));
     }
 
     // ── 상품 클릭 → 상세 페이지 진입 시 호출 (비로그인 가능) ──

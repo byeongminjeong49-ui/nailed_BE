@@ -68,27 +68,40 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // 검색 + 다중 필터 (keyword / 카테고리 / 가격범위 / 상태등급 / 사이즈)
     // :param IS NULL 패턴으로 파라미터가 null이면 해당 조건을 무시
-    @Query(value = "SELECT p FROM Product p WHERE p.productStatus = :onSale " +
-                   "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
-                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+    @Query(value = "SELECT p FROM Product p " +
+                   "LEFT JOIN p.brand b " +
+                   "LEFT JOIN p.category c " +
+                   "WHERE p.productStatus IN (:onSale, :sold) " +
+                   "AND p.deletedAt IS NULL " +
+                   "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
+                   "OR b.name LIKE %:keyword% " +
+                   "OR c.name LIKE %:keyword%) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
-                   "AND (:size IS NULL OR p.size = :size)",
-           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.productStatus = :onSale " +
-                        "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
-                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+                   "AND (:productSize IS NULL OR p.size = :productSize)",
+           countQuery = "SELECT COUNT(p) FROM Product p " +
+                        "LEFT JOIN p.brand b " +
+                        "LEFT JOIN p.category c " +
+                        "WHERE p.productStatus IN (:onSale, :sold) " +
+                        "AND p.deletedAt IS NULL " +
+                        "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
+                        "OR b.name LIKE %:keyword% " +
+                        "OR c.name LIKE %:keyword%) " +
                         "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                         "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                         "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
-                        "AND (:size IS NULL OR p.size = :size)")
+                        "AND (:productSize IS NULL OR p.size = :productSize)")
     Page<Product> search(@Param("onSale") ProductStatus onSale,
+                         @Param("sold") ProductStatus sold,
                          @Param("categoryId") Long categoryId,
                          @Param("keyword") String keyword,
                          @Param("minPrice") Integer minPrice,
                          @Param("maxPrice") Integer maxPrice,
                          @Param("conditionCode") ProductCondition conditionCode,
-                         @Param("size") String size,
+                         @Param("productSize") String productSize,
                          Pageable pageable);
 
     // 5개 메인 카테고리(MENS/WOMENS/LUXURY/ACC/IT) ON_SALE 랜덤 최대 50개
@@ -104,27 +117,40 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Product> findRandomProducts();
 
     // 인기순 전용 쿼리 (조회수×1 + 찜수×3)
-    @Query(value = "SELECT p FROM Product p WHERE p.productStatus = :onSale " +
-                   "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
-                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+    @Query(value = "SELECT p FROM Product p " +
+                   "LEFT JOIN p.brand b " +
+                   "LEFT JOIN p.category c " +
+                   "WHERE p.productStatus IN (:onSale, :sold) " +
+                   "AND p.deletedAt IS NULL " +
+                   "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
+                   "OR b.name LIKE %:keyword% " +
+                   "OR c.name LIKE %:keyword%) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
-                   "AND (:size IS NULL OR p.size = :size) " +
+                   "AND (:productSize IS NULL OR p.size = :productSize) " +
                    "ORDER BY (p.viewCount + p.wishlistCount * 3) DESC",
-           countQuery = "SELECT COUNT(p) FROM Product p WHERE p.productStatus = :onSale " +
-                        "AND (:categoryId IS NULL OR p.category.groupId = :categoryId) " +
-                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% OR p.hashtags LIKE %:keyword%) " +
+           countQuery = "SELECT COUNT(p) FROM Product p " +
+                        "LEFT JOIN p.brand b " +
+                        "LEFT JOIN p.category c " +
+                        "WHERE p.productStatus IN (:onSale, :sold) " +
+                        "AND p.deletedAt IS NULL " +
+                        "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
+                        "OR b.name LIKE %:keyword% " +
+                        "OR c.name LIKE %:keyword%) " +
                         "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                         "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                         "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
-                        "AND (:size IS NULL OR p.size = :size)")
+                        "AND (:productSize IS NULL OR p.size = :productSize)")
     Page<Product> searchOrderByPopular(@Param("onSale") ProductStatus onSale,
+                                       @Param("sold") ProductStatus sold,
                                        @Param("categoryId") Long categoryId,
                                        @Param("keyword") String keyword,
                                        @Param("minPrice") Integer minPrice,
                                        @Param("maxPrice") Integer maxPrice,
                                        @Param("conditionCode") ProductCondition conditionCode,
-                                       @Param("size") String size,
+                                       @Param("productSize") String productSize,
                                        Pageable pageable);
 }

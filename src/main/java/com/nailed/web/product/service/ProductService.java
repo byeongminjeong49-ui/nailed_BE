@@ -205,7 +205,7 @@ public class ProductService {
 
     public PageResponse<ProductResponse.Summary> search(Long categoryId, String keyword,
                                                         Integer minPrice, Integer maxPrice,
-                                                        String conditionCode, String size,
+                                                        String conditionCode, String productSize,
                                                         String sortBy, Pageable pageable) {
         ProductCondition condition = (conditionCode != null && !conditionCode.isBlank())
                 ? EnumUtil.parse(ProductCondition.class, conditionCode, ErrorCode.INVALID_INPUT_VALUE)
@@ -215,7 +215,7 @@ public class ProductService {
         if ("popular".equals(sortBy)) {
             Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
             page = productRepository.searchOrderByPopular(
-                    ProductStatus.ON_SALE, categoryId, keyword, minPrice, maxPrice, condition, size, unsorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, categoryId, keyword, minPrice, maxPrice, condition, productSize, unsorted);
         } else {
             Sort sort = switch (sortBy) {
                 case "price_asc"  -> Sort.by("price").ascending();
@@ -224,7 +224,7 @@ public class ProductService {
             };
             Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
             page = productRepository.search(
-                    ProductStatus.ON_SALE, categoryId, keyword, minPrice, maxPrice, condition, size, sorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, categoryId, keyword, minPrice, maxPrice, condition, productSize, sorted);
         }
 
         return toSummaryPage(page);
