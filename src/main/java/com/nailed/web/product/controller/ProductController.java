@@ -59,7 +59,7 @@ public class ProductController {
     @GetMapping("/brands")
     public ResponseEntity<ApiResponse<List<CategoryDto>>> getBrands() {
         List<ProductGroup> groups =
-                productGroupRepository.findByGroupTypeWithParent(GroupType.BRAND);
+                productGroupRepository.findBrandsIncludingLuxury();
 
         List<CategoryDto> result = groups.stream()
                 .map(g -> new CategoryDto(
