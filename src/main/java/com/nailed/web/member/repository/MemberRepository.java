@@ -1,6 +1,8 @@
 package com.nailed.web.member.repository;
 
 import com.nailed.web.member.entity.Member;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -21,4 +23,18 @@ public interface MemberRepository extends JpaRepository<Member, String> {
     @Modifying
     @Query("UPDATE Member m SET m.sellerGrade = :sellerGrade WHERE m.memberId = :memberId")
     int updateSellerGrade(@Param("memberId") String memberId, @Param("sellerGrade") String sellerGrade);
+
+    @Query("""
+            SELECT m FROM Member m
+            WHERE (:keyword IS NULL
+                OR LOWER(m.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(m.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:role IS NULL OR m.role = :role)
+              AND (:status IS NULL OR m.memberStatus = :status)
+            """)
+    Page<Member> searchAdminMembers(
+            @Param("keyword") String keyword,
+            @Param("role") String role,
+            @Param("status") String status,
+            Pageable pageable);
 }

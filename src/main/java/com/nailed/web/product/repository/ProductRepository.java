@@ -153,4 +153,54 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                                        @Param("conditionCode") ProductCondition conditionCode,
                                        @Param("productSize") String productSize,
                                        Pageable pageable);
+
+    @Query(value = """
+            SELECT p FROM Product p
+            JOIN FETCH p.seller s
+            JOIN FETCH p.category c
+            LEFT JOIN FETCH c.parent cp
+            LEFT JOIN FETCH cp.parent
+            LEFT JOIN FETCH p.brand b
+            WHERE (:keyword IS NULL
+                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:productStatus IS NULL OR p.productStatus = :productStatus)
+              AND (:categoryId IS NULL OR c.groupId = :categoryId)
+              AND (:categoryCode IS NULL OR c.code LIKE CONCAT(:categoryCode, '%'))
+              AND (:brandCode IS NULL OR b.code = :brandCode)
+              AND (:brandName IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :brandName, '%')))
+              AND (:sellerKeyword IS NULL
+                OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :sellerKeyword, '%'))
+                OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :sellerKeyword, '%')))
+            """,
+           countQuery = """
+            SELECT COUNT(p) FROM Product p
+            JOIN p.seller s
+            JOIN p.category c
+            LEFT JOIN p.brand b
+            WHERE (:keyword IS NULL
+                OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:productStatus IS NULL OR p.productStatus = :productStatus)
+              AND (:categoryId IS NULL OR c.groupId = :categoryId)
+              AND (:categoryCode IS NULL OR c.code LIKE CONCAT(:categoryCode, '%'))
+              AND (:brandCode IS NULL OR b.code = :brandCode)
+              AND (:brandName IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :brandName, '%')))
+              AND (:sellerKeyword IS NULL
+                OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :sellerKeyword, '%'))
+                OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :sellerKeyword, '%')))
+            """)
+    Page<Product> searchAdminProducts(
+            @Param("keyword") String keyword,
+            @Param("productStatus") ProductStatus productStatus,
+            @Param("categoryId") Long categoryId,
+            @Param("categoryCode") String categoryCode,
+            @Param("brandCode") String brandCode,
+            @Param("brandName") String brandName,
+            @Param("sellerKeyword") String sellerKeyword,
+            Pageable pageable);
 }
