@@ -49,12 +49,12 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(memberService.updateProfile(memberId, request)));
     }
 
-    @PostMapping("/members/mypage/profile-image")
-    public ResponseEntity<ApiResponse<MemberResponse.Profile>> updateMyProfileImage(
-            @RequestParam("file") MultipartFile file) {
-        String memberId = SecurityUtil.getCurrentMemberId();
-        return ResponseEntity.ok(ApiResponse.success(memberService.updateProfileImage(memberId, file)));
-    }
+//    @PostMapping("/members/mypage/profile-image")
+//    public ResponseEntity<ApiResponse<MemberResponse.Profile>> updateMyProfileImage(
+//            @RequestParam("file") MultipartFile file) {
+//        String memberId = SecurityUtil.getCurrentMemberId();
+//        return ResponseEntity.ok(ApiResponse.success(memberService.updateProfileImage(memberId, file)));
+//    }
 
     @GetMapping("/members/mypage/products")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.ProductSummary>>> getMyProducts(

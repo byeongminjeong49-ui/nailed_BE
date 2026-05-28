@@ -6,9 +6,9 @@ import com.nailed.common.response.PageResponse;
 import com.nailed.web.member.dto.MemberRequest;
 import com.nailed.web.member.dto.MemberResponse;
 import com.nailed.web.member.entity.Member;
-import com.nailed.web.member.entity.MemberProfileImage;
+//import com.nailed.web.member.entity.MemberProfileImage;
 import com.nailed.web.member.repository.MemberRepository;
-import com.nailed.web.member.repository.MemberProfileImageRepository;
+//import com.nailed.web.member.repository.MemberProfileImageRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
@@ -33,8 +33,8 @@ public class MemberService {
     private static final String DEFAULT_PROFILE_IMAGE_URL = "/images/profileImg/default-profile.png";
 
     private final MemberRepository memberRepository;
-    private final MemberProfileImageRepository memberProfileImageRepository;
-    private final ProfileImageStorageService profileImageStorageService;
+//    private final MemberProfileImageRepository memberProfileImageRepository;
+//    private final ProfileImageStorageService profileImageStorageService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -105,33 +105,33 @@ public class MemberService {
         return getProfile(memberId);
     }
 
-    @Transactional
-    public MemberResponse.Profile updateProfileImage(String memberId, MultipartFile file) {
-        Member member = findMember(memberId);
-
-        ProfileImageStorageService.StoredProfileImage storedImage = profileImageStorageService.store(memberId, file);
-        memberProfileImageRepository.clearCurrentByMemberId(memberId);
-        memberProfileImageRepository.save(MemberProfileImage.builder()
-                .member(member)
-                .imageUrl(storedImage.imageUrl())
-                .originalFilename(limitLength(storedImage.originalFilename(), 255))
-                .storedFilename(storedImage.storedFilename())
-                .current(true)
-                .build());
-
-        entityManager.createNativeQuery("""
-                UPDATE members
-                SET profile_image_url = :profileImageUrl
-                WHERE member_id = :memberId
-                """)
-                .setParameter("profileImageUrl", storedImage.imageUrl())
-                .setParameter("memberId", memberId)
-                .executeUpdate();
-
-        entityManager.flush();
-        entityManager.clear();
-        return getProfile(memberId);
-    }
+//    @Transactional
+//    public MemberResponse.Profile updateProfileImage(String memberId, MultipartFile file) {
+//        Member member = findMember(memberId);
+//
+//        ProfileImageStorageService.StoredProfileImage storedImage = profileImageStorageService.store(memberId, file);
+//        memberProfileImageRepository.clearCurrentByMemberId(memberId);
+//        memberProfileImageRepository.save(MemberProfileImage.builder()
+//                .member(member)
+//                .imageUrl(storedImage.imageUrl())
+//                .originalFilename(limitLength(storedImage.originalFilename(), 255))
+//                .storedFilename(storedImage.storedFilename())
+//                .current(true)
+//                .build());
+//
+//        entityManager.createNativeQuery("""
+//                UPDATE members
+//                SET profile_image_url = :profileImageUrl
+//                WHERE member_id = :memberId
+//                """)
+//                .setParameter("profileImageUrl", storedImage.imageUrl())
+//                .setParameter("memberId", memberId)
+//                .executeUpdate();
+//
+//        entityManager.flush();
+//        entityManager.clear();
+//        return getProfile(memberId);
+//    }
 
     public PageResponse<MemberResponse.ProductSummary> getMyProducts(String memberId, String status, Pageable pageable) {
         ensureMemberExists(memberId);
