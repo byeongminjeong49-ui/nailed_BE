@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -69,8 +68,8 @@ public class ReportService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    // UUID 앞 8자리로 생성 → VARCHAR(20) 범위 내 (RPT_ 4자 + 8자 = 12자)
     private String generateReportId() {
-        return "RPT_" + UUID.randomUUID().toString().replace("-", "").substring(0, 8).toUpperCase();
+        int next = reportRepository.findMaxSequentialNumber().orElse(0) + 1;
+        return String.format("RPT_%03d", next);
     }
 }
