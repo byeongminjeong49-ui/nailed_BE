@@ -16,8 +16,10 @@ import com.nailed.web.product.dto.ProductResponse;
 import com.nailed.web.product.entity.Product;
 import com.nailed.web.product.entity.ProductGroup;
 import com.nailed.web.product.entity.ProductImage;
+import com.nailed.web.product.entity.ProductPrdSequence;
 import com.nailed.web.product.repository.ProductGroupRepository;
 import com.nailed.web.product.repository.ProductImageRepository;
+import com.nailed.web.product.repository.ProductPrnSequenceRepository;
 import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.review.repository.ReviewRepository;
 import com.nailed.web.wishlist.repository.WishlistRepository;
@@ -57,25 +59,21 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final ProductGroupRepository productGroupRepository;
     private final ProductImageRepository productImageRepository;
+    private final ProductPrnSequenceRepository prnSequenceRepository;
     private final MemberRepository memberRepository;
     private final OrderRepository orderRepository;
     private final ReviewRepository reviewRepository;
     private final WishlistRepository wishlistRepository;
 
-    // application.properties에 file.upload.path 미정의 시 기본 경로 사용
     @Value("${file.upload.path:uploads}")
     private String uploadPath;
 
+    @Value("${file.static.product.path:src/main/resources/static/images/products}")
+    private String staticProductPath;
+
     // ── 이미지 업로드 ─────────────────────────────────────────
 
-    /**
-     * 이미지 파일을 Tomcat 로컬 디렉토리에 저장하고 URL을 반환한다.
-     * 상품 등록(register)과 별개로 호출되며, URL은 이후 register 요청에 포함된다.
-     *
-     * 주의: application.properties에 spring.servlet.multipart.max-file-size=5MB 설정 권장
-     */
     public String uploadImage(MultipartFile file) {
-        // 허용 확장자 검증 (jpg / png / webp)
         String originalName = file.getOriginalFilename();
         if (originalName == null || !originalName.contains(".")) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
@@ -84,22 +82,18 @@ public class ProductService {
         if (!List.of("jpg", "jpeg", "png", "webp").contains(ext)) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-
-        // 5MB 초과 검증
         if (file.getSize() > 5L * 1024 * 1024) {
             throw new CustomException(ErrorCode.PRODUCT_IMAGE_SIZE_EXCEEDED);
         }
 
         try {
-            // UUID 기반 유니크 파일명 생성 후 저장
-            String savedFileName = UUID.randomUUID() + "." + ext;
-            Path targetPath = Paths.get(uploadPath, savedFileName);
+            // 임시 UUID 파일명으로 uploads/ 에 저장 (register 시 PRD 네이밍으로 교체됨)
+            String tempFileName = UUID.randomUUID() + "." + ext;
+            Path targetPath = Paths.get(uploadPath, tempFileName);
             Files.createDirectories(targetPath.getParent());
             Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
 
-            // DB에 저장될 상대 경로 반환
-            return "/uploads/" + savedFileName;
-
+            return "/uploads/" + tempFileName;
         } catch (IOException e) {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
@@ -135,8 +129,12 @@ public class ProductService {
 
         Product saved = productRepository.save(product);
 
-        // 이미지 저장 (index = sort_order, 0번이 대표 이미지)
-        saveImages(saved, req.imageUrls());
+        // PRD 순번 채번 (product_prn_sequence 테이블 INSERT → AUTO_INCREMENT 값 사용)
+        int prdNumber = prnSequenceRepository.save(new ProductPrdSequence()).getSeqId();
+
+        // 임시 UUID 파일을 PRD 시퀀스 파일명으로 교체 후 이미지 저장
+        List<String> finalUrls = renameToSequence(req.imageUrls(), prdNumber);
+        saveImages(saved, finalUrls);
 
         return saved.getProductId();
     }
@@ -294,7 +292,9 @@ public class ProductService {
         product.update(req.title(), category, brand, req.price(),
                 req.description(), condition, req.size(), req.hashtags());
 
-        syncImages(product, req.imageUrls());
+        // 새로 업로드된 임시 파일만 PRD 시퀀스로 교체
+        List<String> finalUrls = renameNewUploads(req.imageUrls(), product.getProductId());
+        syncImages(product, finalUrls);
     }
 
     // ── 상품 삭제 (소프트) ────────────────────────────────────
@@ -381,7 +381,7 @@ public class ProductService {
     private ProductGroup findBrand(Long brandId) {
         ProductGroup group = productGroupRepository.findById(brandId)
                 .orElseThrow(() -> new CustomException(ErrorCode.BRAND_NOT_FOUND));
-        if (!group.isBrand()) throw new CustomException(ErrorCode.INVALID_GROUP_TYPE);
+        if (!group.isValidBrandRef()) throw new CustomException(ErrorCode.INVALID_GROUP_TYPE);
         return group;
     }
 
@@ -407,6 +407,73 @@ public class ProductService {
                 completedCount,
                 avgRating
         );
+    }
+
+    /**
+     * 상품 등록 시: 임시 UUID 파일 전체를 PRD_{productId}_{1,2,3...}.jpg 로 rename 후 static 경로로 이동
+     * sort_order 0 = 대표 이미지 (첫 번째 URL)
+     */
+    private List<String> renameToSequence(List<String> tempUrls, int prdNumber) {
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < tempUrls.size(); i++) {
+            String tempUrl = tempUrls.get(i);
+            String ext = tempUrl.substring(tempUrl.lastIndexOf("."));
+            String newName = String.format("PRD_%03d_%d%s", prdNumber, i + 1, ext);
+
+            try {
+                Path from = Paths.get(uploadPath).resolve(tempUrl.replace("/uploads/", ""));
+                Path to   = Paths.get(staticProductPath).resolve(newName);
+                Files.createDirectories(to.getParent());
+                Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+
+            result.add("/images/products/" + newName);
+        }
+        return result;
+    }
+
+    /**
+     * 상품 수정 시: 기존 PRD URL은 그대로 두고, 새로 업로드된 임시 파일만 PRD 시퀀스로 rename
+     * 기존 이미지의 max 순번 다음부터 이어서 채번
+     */
+    private List<String> renameNewUploads(List<String> imageUrls, Long productId) {
+        int maxIndex = productImageRepository
+                .findByProductProductIdOrderBySortOrderAsc(productId)
+                .stream()
+                .filter(img -> img.getImageUrl().startsWith("/images/products/"))
+                .mapToInt(img -> {
+                    String name = img.getImageUrl().substring(img.getImageUrl().lastIndexOf('/') + 1);
+                    String[] parts = name.split("[_.]");
+                    try { return Integer.parseInt(parts[parts.length - 2]); } catch (Exception e) { return 0; }
+                })
+                .max()
+                .orElse(0);
+
+        List<String> result = new ArrayList<>();
+        int newIdx = 0;
+        for (String url : imageUrls) {
+            if (!url.startsWith("/uploads/")) {
+                result.add(url);
+                continue;
+            }
+            newIdx++;
+            String ext = url.substring(url.lastIndexOf("."));
+            String newName = String.format("PRD_%03d_%d%s", productId, maxIndex + newIdx, ext);
+
+            try {
+                Path from = Paths.get(uploadPath).resolve(url.replace("/uploads/", ""));
+                Path to   = Paths.get(staticProductPath).resolve(newName);
+                Files.createDirectories(to.getParent());
+                Files.move(from, to, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
+            }
+
+            result.add("/images/products/" + newName);
+        }
+        return result;
     }
 
     /** 이미지 목록 저장 (index = sort_order) */

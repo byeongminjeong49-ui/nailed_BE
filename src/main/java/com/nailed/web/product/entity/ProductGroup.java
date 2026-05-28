@@ -51,6 +51,15 @@ public class ProductGroup {
         return this.groupType == GroupType.BRAND;
     }
 
+    // BRAND 타입 또는 럭셔리 서브카테고리(CATEGORY 타입이지만 브랜드 역할)를 브랜드 참조로 허용
+    public boolean isValidBrandRef() {
+        if (this.groupType == GroupType.BRAND) return true;
+        return this.groupType == GroupType.CATEGORY
+                && this.code.startsWith("LUXURY_")
+                && !this.code.equals("LUXURY")
+                && !this.code.equals("LUXURY_BRAND");
+    }
+
     public void updateName(String name) {
         this.name = name;
     }
