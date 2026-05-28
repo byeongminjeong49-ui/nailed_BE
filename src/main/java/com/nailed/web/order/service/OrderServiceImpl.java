@@ -1,14 +1,17 @@
 package com.nailed.web.order.service;
 import com.nailed.common.enums.OrderStatus;
+import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.order.dto.OrderRequestDto;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.product.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -16,6 +19,7 @@ public class OrderServiceImpl implements OrderService {
     private static final String ORDER_ID_PREFIX = "ORDER_";
     private static final int DEFAULT_COMMISSION_RATE = 2;
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
 
     @Override
     @Transactional
@@ -79,6 +83,7 @@ public class OrderServiceImpl implements OrderService {
             throw new IllegalStateException("주문접수 또는 결제완료 상태의 주문만 취소할 수 있습니다.");
         }
         orderRepository.cancelOrder(orderId);
+        productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE); // ← 추가
         return OrderResponseDto.from(orderRepository.findById(orderId).get());
     }
 

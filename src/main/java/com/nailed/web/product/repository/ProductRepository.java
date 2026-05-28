@@ -203,4 +203,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("brandName") String brandName,
             @Param("sellerKeyword") String sellerKeyword,
             Pageable pageable);
+    
+ // 상품 상태 변경 (배송완료 → SOLD / 주문취소 → ON_SALE 복구)
+    @Modifying
+    @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId = :productId")
+    int updateProductStatus(@Param("productId") Long productId,
+                            @Param("status") ProductStatus status);
 }
