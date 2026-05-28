@@ -6,19 +6,15 @@ import com.nailed.common.response.PageResponse;
 import com.nailed.web.member.dto.MemberRequest;
 import com.nailed.web.member.dto.MemberResponse;
 import com.nailed.web.member.entity.Member;
-//import com.nailed.web.member.entity.MemberProfileImage;
 import com.nailed.web.member.repository.MemberRepository;
-//import com.nailed.web.member.repository.MemberProfileImageRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -33,8 +29,6 @@ public class MemberService {
     private static final String DEFAULT_PROFILE_IMAGE_URL = "/images/profileImg/default-profile.png";
 
     private final MemberRepository memberRepository;
-//    private final MemberProfileImageRepository memberProfileImageRepository;
-//    private final ProfileImageStorageService profileImageStorageService;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -104,34 +98,6 @@ public class MemberService {
         entityManager.clear();
         return getProfile(memberId);
     }
-
-//    @Transactional
-//    public MemberResponse.Profile updateProfileImage(String memberId, MultipartFile file) {
-//        Member member = findMember(memberId);
-//
-//        ProfileImageStorageService.StoredProfileImage storedImage = profileImageStorageService.store(memberId, file);
-//        memberProfileImageRepository.clearCurrentByMemberId(memberId);
-//        memberProfileImageRepository.save(MemberProfileImage.builder()
-//                .member(member)
-//                .imageUrl(storedImage.imageUrl())
-//                .originalFilename(limitLength(storedImage.originalFilename(), 255))
-//                .storedFilename(storedImage.storedFilename())
-//                .current(true)
-//                .build());
-//
-//        entityManager.createNativeQuery("""
-//                UPDATE members
-//                SET profile_image_url = :profileImageUrl
-//                WHERE member_id = :memberId
-//                """)
-//                .setParameter("profileImageUrl", storedImage.imageUrl())
-//                .setParameter("memberId", memberId)
-//                .executeUpdate();
-//
-//        entityManager.flush();
-//        entityManager.clear();
-//        return getProfile(memberId);
-//    }
 
     public PageResponse<MemberResponse.ProductSummary> getMyProducts(String memberId, String status, Pageable pageable) {
         ensureMemberExists(memberId);
@@ -272,11 +238,6 @@ public class MemberService {
         if (!memberRepository.existsById(memberId)) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
-    }
-
-    private Member findMember(String memberId) {
-        return memberRepository.findById(memberId)
-                .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
     private Object[] findMemberProfileRow(String memberId) {
@@ -449,12 +410,5 @@ public class MemberService {
     private String profileImageUrl(Object value) {
         String url = string(value);
         return url != null && !url.isBlank() ? url : DEFAULT_PROFILE_IMAGE_URL;
-    }
-
-    private String limitLength(String value, int maxLength) {
-        if (value == null || value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength);
     }
 }
