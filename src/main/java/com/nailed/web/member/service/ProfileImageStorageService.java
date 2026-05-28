@@ -22,10 +22,11 @@ public class ProfileImageStorageService {
     private static final DateTimeFormatter FILE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss");
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png", "webp");
 
-    public String store(String memberId, MultipartFile file) {
+    public StoredProfileImage store(String memberId, MultipartFile file) {
         validateFile(file);
 
-        String extension = extractExtension(file.getOriginalFilename());
+        String originalFileName = file.getOriginalFilename();
+        String extension = extractExtension(originalFileName);
         Path directory = Paths.get(PROFILE_IMAGE_DIR);
         String savedFileName = createUniqueFileName(directory, memberId, extension);
         Path targetPath = directory.resolve(savedFileName);
@@ -37,8 +38,18 @@ public class ProfileImageStorageService {
             throw new CustomException(ErrorCode.INTERNAL_SERVER_ERROR);
         }
 
-        return PROFILE_IMAGE_URL_PREFIX + savedFileName;
+        return new StoredProfileImage(
+                PROFILE_IMAGE_URL_PREFIX + savedFileName,
+                originalFileName,
+                savedFileName
+        );
     }
+
+    public record StoredProfileImage(
+            String imageUrl,
+            String originalFilename,
+            String storedFilename
+    ) {}
 
     private void validateFile(MultipartFile file) {
         if (file == null || file.isEmpty()) {

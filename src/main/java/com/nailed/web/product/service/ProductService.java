@@ -399,13 +399,17 @@ public class ProductService {
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);
+        String profileImageUrl = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId())
+                .filter(url -> !url.isBlank())
+                .orElse(null);
 
         return new ProductResponse.SellerInfo(
                 seller.getMemberId(),
                 seller.getNickname(),
                 seller.getSellerGrade(),
                 completedCount,
-                avgRating
+                avgRating,
+                profileImageUrl
         );
     }
 

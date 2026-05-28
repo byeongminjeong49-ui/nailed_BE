@@ -37,4 +37,6 @@ public interface MemberRepository extends JpaRepository<Member, String> {
             @Param("role") String role,
             @Param("status") String status,
             Pageable pageable);
+    @Query(value = "SELECT profile_image_url FROM members WHERE member_id = :memberId", nativeQuery = true)
+    Optional<String> findProfileImageUrlByMemberId(@Param("memberId") String memberId);
 }
