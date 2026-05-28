@@ -1,5 +1,4 @@
 package com.nailed.web.order.service;
-
 import com.nailed.common.enums.OrderStatus;
 import com.nailed.web.order.dto.OrderRequestDto;
 import com.nailed.web.order.dto.OrderResponseDto;
@@ -9,26 +8,25 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class OrderServiceImpl implements OrderService {
-
     private static final String ORDER_ID_PREFIX = "ORDER_";
     private static final int DEFAULT_COMMISSION_RATE = 2;
-
     private final OrderRepository orderRepository;
-    
+
     @Override
     @Transactional
     public OrderResponseDto createOrder(String buyerId, String sellerId, OrderRequestDto req) {
         if (buyerId.equals(sellerId)) {
             throw new IllegalArgumentException("구매자와 판매자가 동일할 수 없습니다.");
         }
-
         Order order = Order.builder()
                 .orderId(generateOrderId())
+                .orderStatus("REQUESTED")
+                .cancelRequestStatus("NONE")
                 .productId(req.getProductId())
                 .buyerId(buyerId)
                 .sellerId(sellerId)
@@ -44,7 +42,6 @@ public class OrderServiceImpl implements OrderService {
                 .receiverAddressDetail(req.getReceiverAddressDetail())
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
-
         return OrderResponseDto.from(orderRepository.save(order));
     }
 
@@ -60,15 +57,29 @@ public class OrderServiceImpl implements OrderService {
         validateOrderStatus(orderStatus);
         return orderRepository.countBySellerIdAndOrderStatus(sellerId, orderStatus);
     }
-    
+
     @Override
     @Transactional
     public OrderResponseDto mockPay(String orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
-        order.markAsPaid(); 
-        
+        order.markAsPaid();
         return OrderResponseDto.from(orderRepository.save(order));
+    }
+
+    @Override
+    @Transactional
+    public OrderResponseDto cancelOrder(String orderId, String buyerId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        if (!buyerId.equals(order.getBuyerId())) {
+            throw new IllegalStateException("구매자만 주문을 취소할 수 있습니다.");
+        }
+        if (!List.of("REQUESTED", "PAID").contains(order.getOrderStatus())) {
+            throw new IllegalStateException("주문접수 또는 결제완료 상태의 주문만 취소할 수 있습니다.");
+        }
+        orderRepository.cancelOrder(orderId);
+        return OrderResponseDto.from(orderRepository.findById(orderId).get());
     }
 
     private String generateOrderId() {

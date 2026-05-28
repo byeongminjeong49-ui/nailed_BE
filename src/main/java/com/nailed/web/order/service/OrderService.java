@@ -12,4 +12,6 @@ public interface OrderService {
     long countSellerOrdersByStatus(String sellerId, String orderStatus);
     
     OrderResponseDto mockPay(String orderId);
+    
+    OrderResponseDto cancelOrder(String orderId, String buyerId);
 }
