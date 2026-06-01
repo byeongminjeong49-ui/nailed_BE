@@ -12,6 +12,7 @@ public class ProductResponse {
             Long productId,
             String title,
             int price,
+            int shippingFee,
             String conditionCode,       // S / A / B / C / D
             String conditionLabel,      // 새제품 / 거의새것 / 상태좋음 ...
             int wishlistCount,
@@ -28,6 +29,7 @@ public class ProductResponse {
                     product.getProductId(),
                     product.getTitle(),
                     product.getPrice(),
+                    product.getShippingFee(),
                     product.getConditionCode().name(),
                     product.getConditionCode().getLabel(),
                     product.getWishlistCount(),
@@ -57,6 +59,7 @@ public class ProductResponse {
             Long productId,
             String title,
             int price,
+            int shippingFee,
             String conditionCode,
             String conditionLabel,
             String conditionDescription,
@@ -81,6 +84,7 @@ public class ProductResponse {
                     product.getProductId(),
                     product.getTitle(),
                     product.getPrice(),
+                    product.getShippingFee(),
                     product.getConditionCode().name(),
                     product.getConditionCode().getLabel(),
                     product.getConditionCode().getDescription(),

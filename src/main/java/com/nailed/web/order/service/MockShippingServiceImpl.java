@@ -26,7 +26,11 @@ public class MockShippingServiceImpl implements ShippingService {
             throw new IllegalStateException("결제 완료 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
         order.startShipping(carrierCode, trackingNumber);
-        return OrderResponseDto.from(orderRepository.save(order));
+        Order savedOrder = orderRepository.save(order);
+        int shippingFee = productRepository.findById(savedOrder.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()))
+                .getShippingFee();
+        return OrderResponseDto.from(savedOrder, shippingFee);
     }
 
     // 배송 완료 처리 — mock이므로 즉시 DELIVERED 로 변경
@@ -40,9 +44,12 @@ public class MockShippingServiceImpl implements ShippingService {
         // seller_settlement_amount는 이미 주문 생성 시 계산됨
         // DELIVERED = 정산 확정 (안전결제 에스크로 해제 시점)
         Order savedOrder = orderRepository.save(order);
-        productRepository.updateProductStatus(savedOrder.getProductId(), ProductStatus.SOLD); // ← 추가
+        productRepository.updateProductStatus(savedOrder.getProductId(), ProductStatus.SOLD);
         sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
-        return OrderResponseDto.from(savedOrder);
+        int shippingFee = productRepository.findById(savedOrder.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()))
+                .getShippingFee();
+        return OrderResponseDto.from(savedOrder, shippingFee);
     }
 
     private Order findOrder(String orderId) {

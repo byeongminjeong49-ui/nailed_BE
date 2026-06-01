@@ -49,6 +49,9 @@ public class Product extends SoftDeleteEntity {
     @Column(name = "price", nullable = false)
     private int price;
 
+    @Column(name = "shipping_fee", nullable = false)
+    private int shippingFee;
+
     @Column(name = "description", columnDefinition = "TEXT", nullable = false)
     private String description;
 
@@ -133,12 +136,13 @@ public class Product extends SoftDeleteEntity {
 
     /** 상품 정보 수정 */
     public void update(String title, ProductGroup category, ProductGroup brand,
-                       int price, String description, ProductCondition conditionCode,
+                       int price, int shippingFee, String description, ProductCondition conditionCode,
                        String size, String hashtags) {
         this.title = title;
         this.category = category;
         this.brand = brand;
         this.price = price;
+        this.shippingFee = shippingFee;
         this.description = description;
         this.conditionCode = conditionCode;
         this.size = size;

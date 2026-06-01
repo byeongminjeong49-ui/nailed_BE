@@ -121,6 +121,7 @@ public class ProductService {
                 .brand(brand)
                 .title(req.title())
                 .price(req.price())
+                .shippingFee(req.shippingFee())
                 .description(req.description())
                 .conditionCode(condition)
                 .size(req.size())
@@ -289,7 +290,7 @@ public class ProductService {
             validateSize(req.size(), category);
         }
 
-        product.update(req.title(), category, brand, req.price(),
+        product.update(req.title(), category, brand, req.price(), req.shippingFee(),
                 req.description(), condition, req.size(), req.hashtags());
 
         // 새로 업로드된 임시 파일만 PRD 시퀀스로 교체

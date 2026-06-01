@@ -22,6 +22,10 @@ public class ProductRequest {
             @Min(value = 1000, message = "최소 판매가는 1,000원입니다.")
             Integer price,
 
+            @NotNull(message = "배송비를 입력해주세요.")
+            @Min(value = 0, message = "배송비는 0원 이상이어야 합니다.")
+            Integer shippingFee,
+
             @NotBlank(message = "상품 설명을 입력해주세요.")
             String description,
 
@@ -54,6 +58,10 @@ public class ProductRequest {
             @NotNull(message = "가격을 입력해주세요.")
             @Min(value = 1000, message = "최소 판매가는 1,000원입니다.")
             Integer price,
+
+            @NotNull(message = "배송비를 입력해주세요.")
+            @Min(value = 0, message = "배송비는 0원 이상이어야 합니다.")
+            Integer shippingFee,
 
             @NotBlank(message = "상품 설명을 입력해주세요.")
             String description,

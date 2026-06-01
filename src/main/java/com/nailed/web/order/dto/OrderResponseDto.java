@@ -45,7 +45,7 @@ public class OrderResponseDto {
     private LocalDateTime deliveredAt;
     private LocalDateTime cancelledAt;
 
-    public static OrderResponseDto from(Order order) {
+    public static OrderResponseDto from(Order order, int shippingFee) {
         return OrderResponseDto.builder()
                 .orderId(order.getOrderId())
                 .productId(order.getProductId())
@@ -53,7 +53,7 @@ public class OrderResponseDto {
                 .sellerId(order.getSellerId())
                 .commission(order.getCommission())
                 .productAmount(order.getProductAmount())
-                .shippingFee(order.getShippingFee())
+                .shippingFee(shippingFee)
                 .finalPrice(order.getFinalPrice())
                 .sellerSettlementAmount(order.getSellerSettlementAmount())
                 .receiverName(order.getReceiverName())
