@@ -241,7 +241,7 @@ public class MemberService {
     public MemberResponse.AccountInfo getAccountInfo(String memberId) {
         ensureMemberExists(memberId);
         List<?> result = entityManager.createNativeQuery("""
-                SELECT bank_code, depositor_name
+                SELECT bank_code, account_number, depositor_name
                 FROM members
                 WHERE member_id = :memberId
                 """)
@@ -253,7 +253,8 @@ public class MemberService {
         Object[] row = (Object[]) result.get(0);
         return new MemberResponse.AccountInfo(
                 string(row[0]),
-                string(row[1])
+                string(row[1]),
+                string(row[2])
         );
     }
 

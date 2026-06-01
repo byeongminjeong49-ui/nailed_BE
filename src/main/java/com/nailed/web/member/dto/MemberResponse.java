@@ -77,10 +77,11 @@ public class MemberResponse {
             String bankCode,
             String depositorName
     ) {}
-
     public record AccountInfo(
             String bankCode,
+            String accountNumber,
             String depositorName
+   
     ) {}
 
 }
