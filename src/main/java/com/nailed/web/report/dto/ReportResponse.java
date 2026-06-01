@@ -11,8 +11,8 @@ public class ReportResponse {
             String reportId,
             String reporterId,
             String targetMemberId,
-            String reasonCode,      // FRAUD / ABUSE / PROHIBITED_ITEM / ETC
-            String reasonLabel,     // 사기 / 욕설·비방 / 금지상품 / 기타
+            String reasonCode,      // FRAUD / MISLEADING_INFO / PROHIBITED_ITEM / ETC
+            String reasonLabel,     // 사기 / 상품 정보 허위/불일치 / 금지상품 / 기타
             String detail,
             String reportStatus,    // PENDING / APPROVED / REJECTED / DONE
             LocalDateTime createdAt

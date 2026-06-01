@@ -32,7 +32,7 @@ public class Report extends CreatedOnlyEntity {
     @JoinColumn(name = "reporter_id", nullable = false)
     private Member reporter;
 
-    // 신고 사유 코드 (FRAUD / ABUSE / PROHIBITED_ITEM / ETC)
+    // 신고 사유 코드 (FRAUD / MISLEADING_INFO / PROHIBITED_ITEM / ETC)
     @Enumerated(EnumType.STRING)
     @Column(name = "reason_code", length = 30, nullable = false)
     private ReportReason reasonCode;

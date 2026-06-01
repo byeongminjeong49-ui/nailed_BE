@@ -11,7 +11,7 @@ public class ReportRequest {
             @NotBlank(message = "신고 대상 회원 ID를 입력해주세요.")
             String targetMemberId,
 
-            // FRAUD / ABUSE / PROHIBITED_ITEM / ETC
+            // FRAUD / MISLEADING_INFO / PROHIBITED_ITEM / ETC
             @NotBlank(message = "신고 사유를 선택해주세요.")
             String reasonCode,
 
