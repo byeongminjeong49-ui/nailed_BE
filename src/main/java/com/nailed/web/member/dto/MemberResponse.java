@@ -74,7 +74,14 @@ public class MemberResponse {
             int finalPrice,
             int sellerSettlementAmount,
             String orderStatus,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            String bankCode,
+            String depositorName
+    ) {}
+
+    public record AccountInfo(
+            String bankCode,
+            String depositorName
     ) {}
 
 }

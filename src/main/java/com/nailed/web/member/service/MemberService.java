@@ -42,7 +42,7 @@ public class MemberService {
         long soldProductCount = count("""
                 SELECT COUNT(*) FROM orders
                 WHERE seller_id = :memberId
-                  AND order_status IN ('SHIPPING', 'DELIVERED')
+                  AND order_status IN ('DELIVERED')
                 """, memberId);
         long wishlistCount = count("""
                 SELECT COUNT(*) FROM wishlists
@@ -83,7 +83,8 @@ public class MemberService {
                     shop_info = COALESCE(:shopInfo, shop_info),
                     bank_code = COALESCE(:bankCode, bank_code),
                     account_number = COALESCE(:accountNumber, account_number),
-                    depositor_name = COALESCE(:depositorName, depositor_name)
+                    depositor_name = COALESCE(:depositorName, depositor_name),
+                    profile_image_url = COALESCE(:profileImageUrl, profile_image_url)
                 WHERE member_id = :memberId
                 """)
                 .setParameter("nickname", blankToNull(request.nickname()))
@@ -91,6 +92,7 @@ public class MemberService {
                 .setParameter("bankCode", blankToNull(request.bankCode()))
                 .setParameter("accountNumber", blankToNull(request.accountNumber()))
                 .setParameter("depositorName", blankToNull(request.depositorName()))
+                .setParameter("profileImageUrl", blankToNull(request.profileImageUrl()))
                 .setParameter("memberId", memberId)
                 .executeUpdate();
 
@@ -200,13 +202,15 @@ public class MemberService {
                 JOIN products p ON p.product_id = o.product_id
                 LEFT JOIN product_images pi
                     ON pi.product_id = p.product_id AND pi.sort_order = 0
+                LEFT JOIN members m ON m.member_id = o.seller_id
                 WHERE o.seller_id = :memberId
                   AND o.order_status IN ('SHIPPING', 'DELIVERED')
                 """ + statusCondition;
 
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT o.order_id, o.product_id, p.title, pi.image_url, o.commission,
-                       o.final_price, o.seller_settlement_amount, o.order_status, o.created_at
+                       o.final_price, o.seller_settlement_amount, o.order_status, o.created_at,
+                       m.bank_code, m.depositor_name
                 """ + baseSql + " ORDER BY o.created_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -230,6 +234,42 @@ public class MemberService {
                     refresh_token_expires_at = NULL
                 WHERE member_id = :memberId
                 """)
+                .setParameter("memberId", memberId)
+                .executeUpdate();
+    }
+
+    public MemberResponse.AccountInfo getAccountInfo(String memberId) {
+        ensureMemberExists(memberId);
+        List<?> result = entityManager.createNativeQuery("""
+                SELECT bank_code, depositor_name
+                FROM members
+                WHERE member_id = :memberId
+                """)
+                .setParameter("memberId", memberId)
+                .getResultList();
+        if (result.isEmpty()) {
+            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+        Object[] row = (Object[]) result.get(0);
+        return new MemberResponse.AccountInfo(
+                string(row[0]),
+                string(row[1])
+        );
+    }
+
+    @Transactional
+    public void updateAccountInfo(String memberId, MemberRequest.UpdateAccountInfo request) {
+        ensureMemberExists(memberId);
+        entityManager.createNativeQuery("""
+                UPDATE members
+                SET bank_code       = :bankCode,
+                    account_number  = :accountNumber,
+                    depositor_name  = :depositorName
+                WHERE member_id = :memberId
+                """)
+                .setParameter("bankCode",      blankToNull(request.bankCode()))
+                .setParameter("accountNumber", blankToNull(request.accountNumber()))
+                .setParameter("depositorName", blankToNull(request.depositorName()))
                 .setParameter("memberId", memberId)
                 .executeUpdate();
     }
@@ -371,7 +411,9 @@ public class MemberService {
                 number(row[5]).intValue(),
                 number(row[6]).intValue(),
                 string(row[7]),
-                time(row[8])
+                time(row[8]),
+                string(row[9]),
+                string(row[10])
         );
     }
 

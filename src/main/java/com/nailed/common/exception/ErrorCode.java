@@ -42,6 +42,7 @@ public enum ErrorCode {
     MESSAGE_SEND_FAILED                 (HttpStatus.INTERNAL_SERVER_ERROR,  "M011", "메시지 발송에 실패했습니다."),
     INVALID_BANK_ACCOUNT                (HttpStatus.BAD_REQUEST,            "M012", "유효하지 않은 계좌 정보입니다."),
     INVALID_REFERRER                    (HttpStatus.BAD_REQUEST,            "M013", "존재하지 않는 추천인 닉네임입니다."),
+    FILE_UPLOAD_FAILED                  (HttpStatus.INTERNAL_SERVER_ERROR,  "M014", "파일 업로드에 실패했습니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // P : Product (products / product_groups / product_images 테이블)

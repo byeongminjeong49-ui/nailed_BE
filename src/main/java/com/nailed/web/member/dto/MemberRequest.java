@@ -18,6 +18,19 @@ public class MemberRequest {
             String accountNumber,
 
             @Size(max = 30)
+            String depositorName,
+
+            String profileImageUrl
+    ) {}
+
+    public record UpdateAccountInfo(
+            @Size(max = 20)
+            String bankCode,
+
+            @Size(max = 30)
+            String accountNumber,
+
+            @Size(max = 30)
             String depositorName
     ) {}
 }
