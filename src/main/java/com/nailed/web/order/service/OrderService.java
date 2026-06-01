@@ -13,5 +13,8 @@ public interface OrderService {
     
     OrderResponseDto mockPay(String orderId);
     
+    OrderResponseDto confirmOrder(String orderId, String sellerId);
+    
     OrderResponseDto cancelOrder(String orderId, String buyerId);
+    
 }

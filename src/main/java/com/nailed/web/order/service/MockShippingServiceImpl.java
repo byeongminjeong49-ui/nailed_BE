@@ -22,8 +22,8 @@ public class MockShippingServiceImpl implements ShippingService {
     @Override
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
         Order order = findOrder(orderId);
-        if (!"PAID".equals(order.getOrderStatus())) {
-            throw new IllegalStateException("결제 완료 상태의 주문만 운송장을 등록할 수 있습니다.");
+        if (!"REQUESTED".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("주문접수 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
         order.startShipping(carrierCode, trackingNumber);
         Order savedOrder = orderRepository.save(order);

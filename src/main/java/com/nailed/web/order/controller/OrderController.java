@@ -59,6 +59,13 @@ public class OrderController {
     public ResponseEntity<OrderResponseDto> mockPay(@PathVariable("orderId") String orderId) {
         return ResponseEntity.ok(orderService.mockPay(orderId));
     }
+    // PATCH /api/orders/{orderId}/confirm — 주문 확인 (판매자)
+    @PatchMapping("/{orderId}/confirm")
+    public ResponseEntity<?> confirmOrder(
+            @PathVariable String orderId,
+            @RequestParam String sellerId) {
+        return ResponseEntity.ok(orderService.confirmOrder(orderId, sellerId));
+    }
     // POST /api/orders/{orderId}/cancel
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<OrderResponseDto> cancelOrder(

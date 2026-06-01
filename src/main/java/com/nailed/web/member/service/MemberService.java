@@ -172,7 +172,7 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery(
                 "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
-                + "o.product_amount, o.shipping_fee, o.final_price, o.order_status, "
+                + "o.product_amount, p.shipping_fee, o.final_price, o.order_status, "
                 + "o.cancel_request_status, o.paid_at, o.shipped_at, "
                 + "o.delivered_at, o.cancelled_at "
                 + baseSql + " ORDER BY o.paid_at DESC");
