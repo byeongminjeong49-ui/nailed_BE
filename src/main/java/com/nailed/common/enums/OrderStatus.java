@@ -16,8 +16,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum OrderStatus {
 
-    PAID("결제완료",       "결제가 완료되어 배송 요청 대기 중인 상태"),
-    REQUESTED("배송요청",   "구매자가 배송을 요청한 상태"),
+    PAID("결제완료",       "결제가 완료된 상태"),
+    REQUESTED("주문접수",   "주문이 접수된 상태"),
     SHIPPING("배송중",      "운송장이 등록되어 배송 중인 상태"),
     DELIVERED("배송완료",   "상품이 배송 완료된 상태(정산처리됨)"),
     CANCELLED("취소됨",      "주문이 최종 취소된 상태");
