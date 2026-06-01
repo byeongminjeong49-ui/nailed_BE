@@ -103,12 +103,12 @@ public class AdminDashboardService {
     private List<AdminDashboardResponse.RecentOrder> recentOrders() {
         return rows("""
                 SELECT o.order_id, p.title, buyer.nickname, seller.nickname,
-                       o.order_status, o.final_price, o.created_at
+                       o.order_status, o.final_price, o.paid_at
                 FROM orders o
                 LEFT JOIN products p ON p.product_id = o.product_id
                 LEFT JOIN members buyer ON buyer.member_id = o.buyer_id
                 LEFT JOIN members seller ON seller.member_id = o.seller_id
-                ORDER BY o.created_at DESC
+                ORDER BY o.paid_at DESC
                 LIMIT 5
                 """).stream()
                 .map(row -> new AdminDashboardResponse.RecentOrder(

@@ -29,7 +29,6 @@ public class OrderServiceImpl implements OrderService {
         }
         Order order = Order.builder()
                 .orderId(generateOrderId())
-                .orderStatus("REQUESTED")
                 .cancelRequestStatus("NONE")
                 .productId(req.getProductId())
                 .buyerId(buyerId)
@@ -46,6 +45,7 @@ public class OrderServiceImpl implements OrderService {
                 .receiverAddressDetail(req.getReceiverAddressDetail())
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
+        order.markAsPaid();
         return OrderResponseDto.from(orderRepository.save(order));
     }
 
@@ -79,8 +79,8 @@ public class OrderServiceImpl implements OrderService {
         if (!buyerId.equals(order.getBuyerId())) {
             throw new IllegalStateException("구매자만 주문을 취소할 수 있습니다.");
         }
-        if (!List.of("REQUESTED", "PAID").contains(order.getOrderStatus())) {
-            throw new IllegalStateException("주문접수 또는 결제완료 상태의 주문만 취소할 수 있습니다.");
+        if (!"PAID".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("결제완료 상태의 주문만 취소할 수 있습니다.");
         }
         orderRepository.cancelOrder(orderId);
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE); // ← 추가

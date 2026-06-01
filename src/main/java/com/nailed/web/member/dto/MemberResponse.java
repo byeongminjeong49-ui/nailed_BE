@@ -58,7 +58,6 @@ public class MemberResponse {
             int finalPrice,
             String orderStatus,
             String cancelRequestStatus,
-            LocalDateTime createdAt,
             LocalDateTime paidAt,
             LocalDateTime shippedAt,
             LocalDateTime deliveredAt,
@@ -74,7 +73,7 @@ public class MemberResponse {
             int finalPrice,
             int sellerSettlementAmount,
             String orderStatus,
-            LocalDateTime createdAt,
+            LocalDateTime paidAt,
             String bankCode,
             String depositorName
     ) {}

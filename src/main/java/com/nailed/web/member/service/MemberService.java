@@ -173,9 +173,9 @@ public class MemberService {
         Query dataQuery = entityManager.createNativeQuery(
                 "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
                 + "o.product_amount, o.shipping_fee, o.final_price, o.order_status, "
-                + "o.cancel_request_status, o.created_at, o.paid_at, o.shipped_at, "
+                + "o.cancel_request_status, o.paid_at, o.shipped_at, "
                 + "o.delivered_at, o.cancelled_at "
-                + baseSql + " ORDER BY o.created_at DESC");
+                + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
         setMemberAndStatus(dataQuery, memberId, status);
@@ -209,9 +209,9 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT o.order_id, o.product_id, p.title, pi.image_url, o.commission,
-                       o.final_price, o.seller_settlement_amount, o.order_status, o.created_at,
+                       o.final_price, o.seller_settlement_amount, o.order_status, o.paid_at,
                        m.bank_code, m.depositor_name
-                """ + baseSql + " ORDER BY o.created_at DESC");
+                """ + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
         setMemberAndStatus(dataQuery, memberId, status);
@@ -396,8 +396,7 @@ public class MemberService {
                 time(row[11]),
                 time(row[12]),
                 time(row[13]),
-                time(row[14]),
-                time(row[15])
+                time(row[14])
         );
     }
 

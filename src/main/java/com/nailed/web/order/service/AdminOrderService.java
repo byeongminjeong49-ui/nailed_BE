@@ -84,7 +84,7 @@ public class AdminOrderService {
                 order.getOrderStatus(),
                 order.getProductAmount(),
                 order.getFinalPrice(),
-                order.getCreatedAt(),
+                order.getPaidAt(),
                 completedAt(order),
                 order.getUpdatedAt()
         );

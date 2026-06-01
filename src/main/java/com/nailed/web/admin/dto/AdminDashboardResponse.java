@@ -72,7 +72,7 @@ public class AdminDashboardResponse {
             String sellerNickname,
             String orderStatus,
             Integer paymentAmount,
-            LocalDateTime createdAt
+            LocalDateTime paidAt
     ) {}
 
     public record RecentReport(

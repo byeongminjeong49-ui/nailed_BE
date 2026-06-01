@@ -18,7 +18,7 @@ public class AdminOrderResponse {
             String orderStatus,
             Integer orderAmount,
             Integer paymentAmount,
-            LocalDateTime createdAt,
+            LocalDateTime paidAt,
             LocalDateTime completedAt,
             LocalDateTime updatedAt
     ) {}

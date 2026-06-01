@@ -35,8 +35,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
                 OR LOWER(seller.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(product.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:orderStatus IS NULL OR o.orderStatus = :orderStatus)
-              AND (:dateFrom IS NULL OR o.createdAt >= :dateFrom)
-              AND (:dateTo IS NULL OR o.createdAt <= :dateTo)
+              AND (:dateFrom IS NULL OR o.paidAt >= :dateFrom)
+              AND (:dateTo IS NULL OR o.paidAt <= :dateTo)
             """,
            countQuery = """
             SELECT COUNT(o) FROM Order o
@@ -51,8 +51,8 @@ public interface OrderRepository extends JpaRepository<Order, String> {
                 OR LOWER(seller.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(product.title) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:orderStatus IS NULL OR o.orderStatus = :orderStatus)
-              AND (:dateFrom IS NULL OR o.createdAt >= :dateFrom)
-              AND (:dateTo IS NULL OR o.createdAt <= :dateTo)
+              AND (:dateFrom IS NULL OR o.paidAt >= :dateFrom)
+              AND (:dateTo IS NULL OR o.paidAt <= :dateTo)
             """)
     Page<Order> searchAdminOrders(
             @Param("keyword") String keyword,

@@ -38,9 +38,9 @@ public class OrderResponseDto {
     private String carrierCode;
     private String trackingNumber;
 
-    private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime paidAt;
+    private LocalDateTime requestedAt;
     private LocalDateTime shippedAt;
     private LocalDateTime deliveredAt;
     private LocalDateTime cancelledAt;
@@ -70,9 +70,9 @@ public class OrderResponseDto {
                 .cancelRespondedAt(order.getCancelRespondedAt())
                 .carrierCode(order.getCarrierCode())
                 .trackingNumber(order.getTrackingNumber())
-                .createdAt(order.getCreatedAt())
                 .updatedAt(order.getUpdatedAt())
                 .paidAt(order.getPaidAt())
+                .requestedAt(order.getRequestedAt())
                 .shippedAt(order.getShippedAt())
                 .deliveredAt(order.getDeliveredAt())
                 .cancelledAt(order.getCancelledAt())
