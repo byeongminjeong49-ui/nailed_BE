@@ -55,6 +55,8 @@ public class ProductService {
             OrderStatus.SHIPPING.name(),
             OrderStatus.DELIVERED.name()
     );
+    private static final String MENS_CATEGORY_CODE = "MENS";
+    private static final String WOMENS_CATEGORY_CODE = "WOMENS";
 
     private final ProductRepository productRepository;
     private final ProductGroupRepository productGroupRepository;
@@ -192,17 +194,29 @@ public class ProductService {
 
     // ── 카테고리별 목록 ───────────────────────────────────────
 
-    public PageResponse<ProductResponse.Summary> getList(Long categoryId, Pageable pageable) {
-        Page<Product> page = productRepository
-                .findByCategoryGroupIdAndProductStatusNot(categoryId, ProductStatus.DELETED, pageable);
+    public PageResponse<ProductResponse.Summary> getList(Long categoryId,
+                                                          Integer minPrice, Integer maxPrice,
+                                                          String gender, boolean excludeSold,
+                                                          String productSize, String conditionCode,
+                                                          String sortBy, Pageable pageable) {
+        ProductCondition condition = parseCondition(conditionCode);
+        String genderCodePrefix = resolveGenderCategoryCode(gender);
+        Page<Product> page = getCategoryFilteredPage(categoryId, null, minPrice, maxPrice,
+                genderCodePrefix, excludeSold, productSize, condition, sortBy, pageable);
         return toSummaryPage(page);
     }
 
     // ── 카테고리 코드 prefix 목록 (MENS → MENS 하위 전체) ────
 
-    public PageResponse<ProductResponse.Summary> getListByCode(String categoryCode, Pageable pageable) {
-        Page<Product> page = productRepository
-                .findByCategoryCodePrefixAndProductStatusNot(categoryCode + "%", ProductStatus.DELETED, pageable);
+    public PageResponse<ProductResponse.Summary> getListByCode(String categoryCode,
+                                                               Integer minPrice, Integer maxPrice,
+                                                               String gender, boolean excludeSold,
+                                                               String productSize, String conditionCode,
+                                                               String sortBy, Pageable pageable) {
+        ProductCondition condition = parseCondition(conditionCode);
+        String genderCodePrefix = resolveGenderCategoryCode(gender);
+        Page<Product> page = getCategoryFilteredPage(null, categoryCode, minPrice, maxPrice,
+                genderCodePrefix, excludeSold, productSize, condition, sortBy, pageable);
         return toSummaryPage(page);
     }
 
@@ -211,16 +225,18 @@ public class ProductService {
     public PageResponse<ProductResponse.Summary> search(Long categoryId, String keyword,
                                                         Integer minPrice, Integer maxPrice,
                                                         String conditionCode, String productSize,
+                                                        String gender, boolean excludeSold,
                                                         String sortBy, Pageable pageable) {
-        ProductCondition condition = (conditionCode != null && !conditionCode.isBlank())
-                ? EnumUtil.parse(ProductCondition.class, conditionCode, ErrorCode.INVALID_INPUT_VALUE)
-                : null;
+        ProductCondition condition = parseCondition(conditionCode);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        String categoryCodePrefix = resolveGenderCategoryCode(gender);
 
         Page<Product> page;
         if ("popular".equals(sortBy)) {
             Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
             page = productRepository.searchOrderByPopular(
-                    ProductStatus.ON_SALE, ProductStatus.SOLD, categoryId, keyword, minPrice, maxPrice, condition, productSize, unsorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
+                    normalizedKeyword, minPrice, maxPrice, condition, productSize, unsorted);
         } else {
             Sort sort = switch (sortBy) {
                 case "price_asc"  -> Sort.by("price").ascending();
@@ -229,10 +245,57 @@ public class ProductService {
             };
             Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
             page = productRepository.search(
-                    ProductStatus.ON_SALE, ProductStatus.SOLD, categoryId, keyword, minPrice, maxPrice, condition, productSize, sorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
+                    normalizedKeyword, minPrice, maxPrice, condition, productSize, sorted);
         }
 
         return toSummaryPage(page);
+    }
+
+    private Page<Product> getCategoryFilteredPage(Long categoryId, String categoryCode,
+                                                  Integer minPrice, Integer maxPrice,
+                                                  String genderCodePrefix, boolean excludeSold,
+                                                  String productSize, ProductCondition condition,
+                                                  String sortBy, Pageable pageable) {
+        String categoryCodePrefix = normalizeKeyword(categoryCode);
+
+        if ("popular".equals(sortBy)) {
+            Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
+            return productRepository.findCategoryProductsOrderByPopular(
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
+                    genderCodePrefix, minPrice, maxPrice, condition, productSize, unsorted);
+        }
+
+        Sort sort = switch (sortBy) {
+            case "price_asc" -> Sort.by("price").ascending();
+            case "price_desc" -> Sort.by("price").descending();
+            default -> Sort.by("createdAt").descending();
+        };
+        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        return productRepository.findCategoryProducts(
+                ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
+                genderCodePrefix, minPrice, maxPrice, condition, productSize, sorted);
+    }
+
+    private ProductCondition parseCondition(String conditionCode) {
+        return (conditionCode != null && !conditionCode.isBlank())
+                ? EnumUtil.parse(ProductCondition.class, conditionCode, ErrorCode.INVALID_INPUT_VALUE)
+                : null;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        return (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+    }
+
+    private String resolveGenderCategoryCode(String gender) {
+        if (gender == null || gender.isBlank()) {
+            return null;
+        }
+        return switch (gender.trim().toUpperCase()) {
+            case "MENS", "MEN", "MALE" -> MENS_CATEGORY_CODE;
+            case "WOMENS", "WOMEN", "FEMALE" -> WOMENS_CATEGORY_CODE;
+            default -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        };
     }
 
     // ── 판매자의 다른 상품 최대 5개 ──────────────────────────

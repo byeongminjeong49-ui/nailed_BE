@@ -28,6 +28,99 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("deleted") ProductStatus deleted,
             Pageable pageable);
 
+    @Query(value = "SELECT p FROM Product p " +
+                   "LEFT JOIN p.category c " +
+                   "LEFT JOIN c.parent cp " +
+                   "LEFT JOIN cp.parent cpp " +
+                   "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
+                   "AND p.deletedAt IS NULL " +
+                   "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                   "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                   "OR cp.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                   "OR cpp.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                   "AND (:genderCodePrefix IS NULL OR c.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                   "OR cp.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                   "OR cpp.code LIKE CONCAT(:genderCodePrefix, '%')) " +
+                   "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                   "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                   "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                   "AND (:productSize IS NULL OR p.size = :productSize)",
+           countQuery = "SELECT COUNT(p) FROM Product p " +
+                        "LEFT JOIN p.category c " +
+                        "LEFT JOIN c.parent cp " +
+                        "LEFT JOIN cp.parent cpp " +
+                        "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
+                        "AND p.deletedAt IS NULL " +
+                        "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                        "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                        "OR cp.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                        "OR cpp.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                        "AND (:genderCodePrefix IS NULL OR c.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                        "OR cp.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                        "OR cpp.code LIKE CONCAT(:genderCodePrefix, '%')) " +
+                        "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                        "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                        "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                        "AND (:productSize IS NULL OR p.size = :productSize)")
+    Page<Product> findCategoryProducts(@Param("onSale") ProductStatus onSale,
+                                       @Param("sold") ProductStatus sold,
+                                       @Param("excludeSold") boolean excludeSold,
+                                       @Param("categoryId") Long categoryId,
+                                       @Param("categoryCodePrefix") String categoryCodePrefix,
+                                       @Param("genderCodePrefix") String genderCodePrefix,
+                                       @Param("minPrice") Integer minPrice,
+                                       @Param("maxPrice") Integer maxPrice,
+                                       @Param("conditionCode") ProductCondition conditionCode,
+                                       @Param("productSize") String productSize,
+                                       Pageable pageable);
+
+    @Query(value = "SELECT p FROM Product p " +
+                   "LEFT JOIN p.category c " +
+                   "LEFT JOIN c.parent cp " +
+                   "LEFT JOIN cp.parent cpp " +
+                   "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
+                   "AND p.deletedAt IS NULL " +
+                   "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                   "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                   "OR cp.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                   "OR cpp.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                   "AND (:genderCodePrefix IS NULL OR c.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                   "OR cp.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                   "OR cpp.code LIKE CONCAT(:genderCodePrefix, '%')) " +
+                   "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                   "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                   "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                   "AND (:productSize IS NULL OR p.size = :productSize) " +
+                   "ORDER BY (p.viewCount + p.wishlistCount * 3) DESC",
+           countQuery = "SELECT COUNT(p) FROM Product p " +
+                        "LEFT JOIN p.category c " +
+                        "LEFT JOIN c.parent cp " +
+                        "LEFT JOIN cp.parent cpp " +
+                        "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
+                        "AND p.deletedAt IS NULL " +
+                        "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
+                        "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                        "OR cp.code LIKE CONCAT(:categoryCodePrefix, '%') " +
+                        "OR cpp.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                        "AND (:genderCodePrefix IS NULL OR c.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                        "OR cp.code LIKE CONCAT(:genderCodePrefix, '%') " +
+                        "OR cpp.code LIKE CONCAT(:genderCodePrefix, '%')) " +
+                        "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
+                        "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
+                        "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
+                        "AND (:productSize IS NULL OR p.size = :productSize)")
+    Page<Product> findCategoryProductsOrderByPopular(@Param("onSale") ProductStatus onSale,
+                                                     @Param("sold") ProductStatus sold,
+                                                     @Param("excludeSold") boolean excludeSold,
+                                                     @Param("categoryId") Long categoryId,
+                                                     @Param("categoryCodePrefix") String categoryCodePrefix,
+                                                     @Param("genderCodePrefix") String genderCodePrefix,
+                                                     @Param("minPrice") Integer minPrice,
+                                                     @Param("maxPrice") Integer maxPrice,
+                                                     @Param("conditionCode") ProductCondition conditionCode,
+                                                     @Param("productSize") String productSize,
+                                                     Pageable pageable);
+
     // 내 판매 상품 - 특정 상태
     Page<Product> findBySellerMemberIdAndProductStatus(String memberId, ProductStatus status, Pageable pageable);
 
@@ -71,12 +164,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT p FROM Product p " +
                    "LEFT JOIN p.brand b " +
                    "LEFT JOIN p.category c " +
-                   "WHERE p.productStatus IN (:onSale, :sold) " +
+                   "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
                    "AND p.deletedAt IS NULL " +
                    "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
-                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
-                   "OR b.name LIKE %:keyword% " +
-                   "OR c.name LIKE %:keyword%) " +
+                   "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                   "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
@@ -84,19 +179,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            countQuery = "SELECT COUNT(p) FROM Product p " +
                         "LEFT JOIN p.brand b " +
                         "LEFT JOIN p.category c " +
-                        "WHERE p.productStatus IN (:onSale, :sold) " +
+                        "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
                         "AND p.deletedAt IS NULL " +
                         "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
-                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
-                        "OR b.name LIKE %:keyword% " +
-                        "OR c.name LIKE %:keyword%) " +
+                        "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                        "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                         "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                         "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                         "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
                         "AND (:productSize IS NULL OR p.size = :productSize)")
     Page<Product> search(@Param("onSale") ProductStatus onSale,
                          @Param("sold") ProductStatus sold,
+                         @Param("excludeSold") boolean excludeSold,
                          @Param("categoryId") Long categoryId,
+                         @Param("categoryCodePrefix") String categoryCodePrefix,
                          @Param("keyword") String keyword,
                          @Param("minPrice") Integer minPrice,
                          @Param("maxPrice") Integer maxPrice,
@@ -120,12 +219,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = "SELECT p FROM Product p " +
                    "LEFT JOIN p.brand b " +
                    "LEFT JOIN p.category c " +
-                   "WHERE p.productStatus IN (:onSale, :sold) " +
+                   "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
                    "AND p.deletedAt IS NULL " +
                    "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
-                   "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
-                   "OR b.name LIKE %:keyword% " +
-                   "OR c.name LIKE %:keyword%) " +
+                   "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                   "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
@@ -134,19 +235,23 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            countQuery = "SELECT COUNT(p) FROM Product p " +
                         "LEFT JOIN p.brand b " +
                         "LEFT JOIN p.category c " +
-                        "WHERE p.productStatus IN (:onSale, :sold) " +
+                        "WHERE (p.productStatus = :onSale OR (:excludeSold = false AND p.productStatus = :sold)) " +
                         "AND p.deletedAt IS NULL " +
                         "AND (:categoryId IS NULL OR c.groupId = :categoryId) " +
-                        "AND (:keyword IS NULL OR p.title LIKE %:keyword% " +
-                        "OR b.name LIKE %:keyword% " +
-                        "OR c.name LIKE %:keyword%) " +
+                        "AND (:categoryCodePrefix IS NULL OR c.code LIKE CONCAT(:categoryCodePrefix, '%')) " +
+                        "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                        "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                         "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                         "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                         "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
                         "AND (:productSize IS NULL OR p.size = :productSize)")
     Page<Product> searchOrderByPopular(@Param("onSale") ProductStatus onSale,
                                        @Param("sold") ProductStatus sold,
+                                       @Param("excludeSold") boolean excludeSold,
                                        @Param("categoryId") Long categoryId,
+                                       @Param("categoryCodePrefix") String categoryCodePrefix,
                                        @Param("keyword") String keyword,
                                        @Param("minPrice") Integer minPrice,
                                        @Param("maxPrice") Integer maxPrice,

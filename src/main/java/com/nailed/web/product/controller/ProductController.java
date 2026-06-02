@@ -100,15 +100,24 @@ public class ProductController {
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getList(
             @RequestParam(required = false) Long categoryId,
             @RequestParam(required = false) String categoryCode,
+            @RequestParam(required = false) Integer minPrice,
+            @RequestParam(required = false) Integer maxPrice,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeSold,
+            @RequestParam(required = false) String productSize,
+            @RequestParam(required = false) String conditionCode,
+            @RequestParam(required = false, defaultValue = "latest") String sortBy,
             @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         if (categoryCode != null && !categoryCode.isBlank()) {
-            return ResponseEntity.ok(ApiResponse.success(productService.getListByCode(categoryCode, pageable)));
+            return ResponseEntity.ok(ApiResponse.success(productService.getListByCode(
+                    categoryCode, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
         }
         if (categoryId == null) {
             throw new com.nailed.common.exception.CustomException(
                     com.nailed.common.exception.ErrorCode.INVALID_INPUT_VALUE);
         }
-        return ResponseEntity.ok(ApiResponse.success(productService.getList(categoryId, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(productService.getList(
+                categoryId, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
     }
 
     // ── 홈 추천: 최신 상품 6개 (비로그인 가능) ────────────────
@@ -143,11 +152,14 @@ public class ProductController {
             @RequestParam(required = false) Integer maxPrice,
             @RequestParam(required = false) String conditionCode,
             @RequestParam(required = false) String productSize,
+            @RequestParam(required = false) String gender,
+            @RequestParam(required = false, defaultValue = "false") boolean excludeSold,
             @RequestParam(required = false, defaultValue = "latest") String sortBy,
             @PageableDefault(size = 15) Pageable pageable) {
 
         return ResponseEntity.ok(ApiResponse.success(
-                productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, productSize, sortBy, pageable)));
+                productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, productSize,
+                        gender, excludeSold, sortBy, pageable)));
     }
 
     // ── 상품 클릭 → 상세 페이지 진입 시 호출 (비로그인 가능) ──
