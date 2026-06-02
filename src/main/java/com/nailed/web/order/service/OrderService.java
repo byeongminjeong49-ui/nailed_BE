@@ -36,8 +36,8 @@ public class OrderService {
         if (product.getProductStatus() != ProductStatus.ON_SALE) {
             throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
         }
-        int productAmount    = product.getPrice();
-        int finalPrice       = productAmount + product.getShippingFee();
+        int productPrice = product.getPrice();
+        int finalPrice = productPrice + product.getShippingFee();
         int settlementAmount = finalPrice - ((finalPrice * DEFAULT_COMMISSION_RATE) / 100);
 
         Order order = Order.builder()
@@ -47,7 +47,6 @@ public class OrderService {
                 .buyerId(buyerId)
                 .sellerId(sellerId)
                 .commission(DEFAULT_COMMISSION_RATE)
-                .productAmount(productAmount)
                 .finalPrice(finalPrice)
                 .sellerSettlementAmount(settlementAmount)
                 .receiverName(req.getReceiverName())
@@ -58,7 +57,7 @@ public class OrderService {
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
         order.markAsPaid();
-        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee(), product.getPrice());
     }
 
     public OrderResponseDto getOrder(String orderId) {
@@ -66,7 +65,7 @@ public class OrderService {
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
-        return OrderResponseDto.from(order, product.getShippingFee());
+        return OrderResponseDto.from(order, product.getShippingFee(), product.getPrice());
     }
 
     public long countSellerOrdersByStatus(String sellerId, String orderStatus) {
@@ -81,7 +80,7 @@ public class OrderService {
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
         order.markAsPaid();
-        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee(), product.getPrice());
     }
 
     @Transactional
@@ -97,7 +96,7 @@ public class OrderService {
         order.markAsRequested();
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
-        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee(), product.getPrice());
     }
 
     @Transactional
@@ -114,7 +113,7 @@ public class OrderService {
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
-        return OrderResponseDto.from(orderRepository.findById(orderId).get(), product.getShippingFee());
+        return OrderResponseDto.from(orderRepository.findById(orderId).get(), product.getShippingFee(), product.getPrice());
     }
 
     private String generateOrderId() {

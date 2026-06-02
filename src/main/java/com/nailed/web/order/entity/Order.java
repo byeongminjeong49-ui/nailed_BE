@@ -21,7 +21,6 @@ public class Order {
     private String sellerId;
     private Long productId;
     private Integer commission;
-    private Integer productAmount;
     private Integer finalPrice;
     private Integer sellerSettlementAmount;
     private String receiverName;

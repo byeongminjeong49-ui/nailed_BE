@@ -172,8 +172,8 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery(
                 "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
-                + "o.product_amount, p.shipping_fee, o.final_price, o.order_status, "
-                + "o.cancel_request_status, o.paid_at, o.shipped_at, "
+                		+ "p.price, p.shipping_fee, o.final_price, o.order_status, "
+                + "o.previous_status, o.cancel_request_status, o.paid_at, o.shipped_at, "		
                 + "o.delivered_at, o.cancelled_at "
                 + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
@@ -394,10 +394,11 @@ public class MemberService {
                 number(row[8]).intValue(),
                 string(row[9]),
                 string(row[10]),
-                time(row[11]),
+                string(row[11]),
                 time(row[12]),
                 time(row[13]),
-                time(row[14])
+                time(row[14]),
+                time(row[15])
         );
     }
 
