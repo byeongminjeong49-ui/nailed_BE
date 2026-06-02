@@ -1,20 +1,136 @@
 package com.nailed.web.order.service;
 
+import com.nailed.common.enums.OrderStatus;
+import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.order.dto.OrderRequestDto;
 import com.nailed.web.order.dto.OrderResponseDto;
+import com.nailed.web.order.entity.Order;
+import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.product.entity.Product;
+import com.nailed.web.product.repository.ProductRepository;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public interface OrderService {
+import java.util.List;
 
-    OrderResponseDto createOrder(String buyerId, String sellerId, OrderRequestDto requestDto);
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class OrderService {
 
-    OrderResponseDto getOrder(String orderId);
+    private static final String ORDER_ID_PREFIX = "ORDER_";
+    private static final int DEFAULT_COMMISSION_RATE = 2;
 
-    long countSellerOrdersByStatus(String sellerId, String orderStatus);
-    
-    OrderResponseDto mockPay(String orderId);
-    
-    OrderResponseDto confirmOrder(String orderId, String sellerId);
-    
-    OrderResponseDto cancelOrder(String orderId, String buyerId);
-    
+    private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
+
+    @Transactional
+    public OrderResponseDto createOrder(String buyerId, String sellerId, OrderRequestDto req) {
+        if (buyerId.equals(sellerId)) {
+            throw new IllegalArgumentException("구매자와 판매자가 동일할 수 없습니다.");
+        }
+        Product product = productRepository.findById(req.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + req.getProductId()));
+        if (product.getProductStatus() != ProductStatus.ON_SALE) {
+            throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
+        }
+        int productAmount    = product.getPrice();
+        int finalPrice       = productAmount + product.getShippingFee();
+        int settlementAmount = finalPrice - ((finalPrice * DEFAULT_COMMISSION_RATE) / 100);
+
+        Order order = Order.builder()
+                .orderId(generateOrderId())
+                .cancelRequestStatus("NONE")
+                .productId(req.getProductId())
+                .buyerId(buyerId)
+                .sellerId(sellerId)
+                .commission(DEFAULT_COMMISSION_RATE)
+                .productAmount(productAmount)
+                .finalPrice(finalPrice)
+                .sellerSettlementAmount(settlementAmount)
+                .receiverName(req.getReceiverName())
+                .receiverPhone(req.getReceiverPhone())
+                .receiverZipcode(req.getReceiverZipcode())
+                .receiverAddress(req.getReceiverAddress())
+                .receiverAddressDetail(req.getReceiverAddressDetail())
+                .deliveryRequest(req.getDeliveryRequest())
+                .build();
+        order.markAsPaid();
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+    }
+
+    public OrderResponseDto getOrder(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        Product product = productRepository.findById(order.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
+        return OrderResponseDto.from(order, product.getShippingFee());
+    }
+
+    public long countSellerOrdersByStatus(String sellerId, String orderStatus) {
+        validateOrderStatus(orderStatus);
+        return orderRepository.countBySellerIdAndOrderStatus(sellerId, orderStatus);
+    }
+
+    @Transactional
+    public OrderResponseDto mockPay(String orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        Product product = productRepository.findById(order.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
+        order.markAsPaid();
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+    }
+
+    @Transactional
+    public OrderResponseDto confirmOrder(String orderId, String sellerId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        if (!sellerId.equals(order.getSellerId())) {
+            throw new IllegalStateException("판매자만 주문을 확인할 수 있습니다.");
+        }
+        if (!"PAID".equals(order.getOrderStatus())) {
+            throw new IllegalStateException("결제완료 상태의 주문만 확인할 수 있습니다.");
+        }
+        order.markAsRequested();
+        Product product = productRepository.findById(order.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다."));
+        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee());
+    }
+
+    @Transactional
+    public OrderResponseDto cancelOrder(String orderId, String buyerId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        if (!buyerId.equals(order.getBuyerId())) {
+            throw new IllegalStateException("구매자만 주문을 취소할 수 있습니다.");
+        }
+        if (!List.of(OrderStatus.PAID.name(), OrderStatus.REQUESTED.name()).contains(order.getOrderStatus())) {
+            throw new IllegalStateException("결제완료 또는 주문접수 상태의 주문만 취소할 수 있습니다.");
+        }
+        orderRepository.cancelOrder(orderId);
+        productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
+        Product product = productRepository.findById(order.getProductId())
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
+        return OrderResponseDto.from(orderRepository.findById(orderId).get(), product.getShippingFee());
+    }
+
+    private String generateOrderId() {
+        long num = orderRepository.count() + 1;
+        String candidateId;
+        do {
+            candidateId = ORDER_ID_PREFIX + String.format("%03d", num++);
+        } while (orderRepository.existsById(candidateId));
+        return candidateId;
+    }
+
+    private void validateOrderStatus(String orderStatus) {
+        try {
+            OrderStatus.valueOf(orderStatus);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException("유효하지 않은 주문 상태입니다: " + orderStatus);
+        }
+    }
 }

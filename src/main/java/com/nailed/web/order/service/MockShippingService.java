@@ -1,4 +1,5 @@
 package com.nailed.web.order.service;
+
 import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
@@ -10,45 +11,62 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+import java.util.regex.Pattern;
+
 @Service
 @RequiredArgsConstructor
 @Transactional
-public class MockShippingServiceImpl implements ShippingService {
+public class MockShippingService implements ShippingService {
+
+    private static final Set<String> ALLOWED_CARRIERS = Set.of("CJ","LOGEN", "HANJIN", "KOREA_POST", "LOTTE");
+    private static final Pattern TRACKING_PATTERN = Pattern.compile("^[0-9]{10,13}$");
+
     private final OrderRepository orderRepository;
     private final SellerGradeService sellerGradeService;
-    private final ProductRepository productRepository; // ← 추가
+    private final ProductRepository productRepository;
 
-    // 운송장 등록 — PAID 상태인 주문만 가능
     @Override
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
+        if (!ALLOWED_CARRIERS.contains(carrierCode)) {
+            throw new IllegalArgumentException("지원하지 않는 택배사입니다. 허용: " + ALLOWED_CARRIERS);
+        }
+        if (!TRACKING_PATTERN.matcher(trackingNumber).matches()) {
+            throw new IllegalArgumentException("유효하지 않은 운송장 번호입니다. 숫자 10~13자리로 입력해주세요.");
+        }
+
         Order order = findOrder(orderId);
         if (!"REQUESTED".equals(order.getOrderStatus())) {
             throw new IllegalStateException("주문접수 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
+
         order.startShipping(carrierCode, trackingNumber);
         Order savedOrder = orderRepository.save(order);
+
         int shippingFee = productRepository.findById(savedOrder.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()))
                 .getShippingFee();
+
         return OrderResponseDto.from(savedOrder, shippingFee);
     }
 
-    // 배송 완료 처리 — mock이므로 즉시 DELIVERED 로 변경
     @Override
     public OrderResponseDto confirmDelivery(String orderId) {
         Order order = findOrder(orderId);
         if (!"SHIPPING".equals(order.getOrderStatus())) {
             throw new IllegalStateException("배송 중 상태의 주문만 배송 완료 처리할 수 있습니다.");
         }
-        order.markAsDelivered(); // DELIVERED + deliveredAt 기록
-        // seller_settlement_amount는 이미 주문 생성 시 계산됨
-        // DELIVERED = 정산 확정 (안전결제 에스크로 해제 시점)
+
+        order.markAsDelivered();
         Order savedOrder = orderRepository.save(order);
+
         productRepository.updateProductStatus(savedOrder.getProductId(), ProductStatus.SOLD);
         sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
+
         int shippingFee = productRepository.findById(savedOrder.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()))
                 .getShippingFee();
+
         return OrderResponseDto.from(savedOrder, shippingFee);
     }
 
