@@ -82,11 +82,23 @@ public class AdminOrderService {
                 product != null ? product.getTitle() : null,
                 thumbnailMap.get(order.getProductId()),
                 order.getOrderStatus(),
-                order.getProductAmount(),
+                toProductInfo(product),
+                order.getCommission(),
                 order.getFinalPrice(),
+                order.getSellerSettlementAmount(),
                 order.getPaidAt(),
                 completedAt(order),
                 order.getUpdatedAt()
+        );
+    }
+
+    private AdminOrderResponse.ProductInfo toProductInfo(Product product) {
+        if (product == null) {
+            return null;
+        }
+        return new AdminOrderResponse.ProductInfo(
+                product.getPrice(),
+                product.getShippingFee()
         );
     }
 

@@ -16,10 +16,17 @@ public class AdminOrderResponse {
             String productTitle,
             String productThumbnailUrl,
             String orderStatus,
-            Integer orderAmount,
-            Integer paymentAmount,
+            ProductInfo product,
+            Integer commission,
+            Integer finalPrice,
+            Integer sellerSettlementAmount,
             LocalDateTime paidAt,
             LocalDateTime completedAt,
             LocalDateTime updatedAt
+    ) {}
+
+    public record ProductInfo(
+            Integer price,
+            Integer shippingFee
     ) {}
 }

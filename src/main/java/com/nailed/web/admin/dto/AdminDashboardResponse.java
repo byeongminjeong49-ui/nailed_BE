@@ -71,7 +71,7 @@ public class AdminDashboardResponse {
             String buyerNickname,
             String sellerNickname,
             String orderStatus,
-            Integer paymentAmount,
+            Integer finalPrice,
             LocalDateTime paidAt
     ) {}
 
