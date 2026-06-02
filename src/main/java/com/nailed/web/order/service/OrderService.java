@@ -36,9 +36,11 @@ public class OrderService {
         if (product.getProductStatus() != ProductStatus.ON_SALE) {
             throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
         }
-        int productPrice = product.getPrice();
-        int finalPrice = productPrice + product.getShippingFee();
-        int settlementAmount = finalPrice - ((finalPrice * DEFAULT_COMMISSION_RATE) / 100);
+        int productPrice        = product.getPrice();
+        int shippingFee         = product.getShippingFee();
+        int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
+        int finalPrice          = productPrice + shippingFee + commissionAmount;
+        int sellerSettlementAmount = finalPrice - commissionAmount;
 
         Order order = Order.builder()
                 .orderId(generateOrderId())
@@ -46,9 +48,9 @@ public class OrderService {
                 .productId(req.getProductId())
                 .buyerId(buyerId)
                 .sellerId(sellerId)
-                .commission(DEFAULT_COMMISSION_RATE)
-                .finalPrice(finalPrice)
-                .sellerSettlementAmount(settlementAmount)
+                .commission(DEFAULT_COMMISSION_RATE)       // 비율 2 저장
+                .finalPrice(finalPrice)                    // 구매자 결제 금액
+                .sellerSettlementAmount(sellerSettlementAmount)  // 판매자 정산 금액
                 .receiverName(req.getReceiverName())
                 .receiverPhone(req.getReceiverPhone())
                 .receiverZipcode(req.getReceiverZipcode())
@@ -57,7 +59,7 @@ public class OrderService {
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
         order.markAsPaid();
-        return OrderResponseDto.from(orderRepository.save(order), product.getShippingFee(), product.getPrice());
+        return OrderResponseDto.from(orderRepository.save(order), shippingFee, productPrice);
     }
 
     public OrderResponseDto getOrder(String orderId) {
