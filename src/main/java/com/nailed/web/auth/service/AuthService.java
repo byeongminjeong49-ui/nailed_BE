@@ -1,5 +1,16 @@
 package com.nailed.web.auth.service;
 
+import java.security.SecureRandom;
+import java.time.Duration;
+import java.time.LocalDateTime;
+
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.config.jwt.JwtTokenProvider;
@@ -7,14 +18,10 @@ import com.nailed.web.auth.dto.AuthRequest;
 import com.nailed.web.auth.dto.AuthResponse;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
-import io.jsonwebtoken.JwtException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.security.SecureRandom;
-import java.time.LocalDateTime;
+import io.jsonwebtoken.JwtException;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -69,7 +76,7 @@ public class AuthService {
     }
 
     @Transactional(noRollbackFor = CustomException.class)
-    public AuthResponse.Login login(AuthRequest.Login request) {
+    public AuthResponse.Login login(AuthRequest.Login request, HttpServletResponse response) {
         String userid = normalizeUserid(request.userid());
         Member member = memberRepository.findByUserid(userid)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_LOGIN));
@@ -89,20 +96,35 @@ public class AuthService {
         JwtTokenProvider.AccessTokenInfo accessTokenInfo = jwtTokenProvider.createAccessTokenInfo(member);
         JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);
         member.updateRefreshToken(refreshTokenInfo.refreshToken(), refreshTokenInfo.refreshTokenExpiresAt());
-
-        return AuthResponse.Login.from(member, accessTokenInfo, refreshTokenInfo);
+        
+        
+        ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshTokenInfo.refreshToken())
+                .httpOnly(true)  //JS접근불가: document.cookie 로 읽을수없음 (XSS 공격 방어)
+                .sameSite("Lax") //또는 None
+                .secure(false)	 //HTTP연결 허용
+                .path("/")		//모든 URL요청에 쿠키 포함
+                .maxAge(Duration.ofDays(7)) //쿠키유지시간, 단위 초 (7일 설정)
+                .build();
+        response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
+        
+        
+        
+        
+       // return AuthResponse.Login.from(member, accessTokenInfo, refreshTokenInfo);
+        return AuthResponse.Login.from(member, accessTokenInfo,null);
     }
 
-    public AuthResponse.TokenRefresh refreshAccessToken(AuthRequest.TokenRefresh request) {
-        String refreshToken = normalizeToken(request == null ? null : request.refreshToken());
-        if (refreshToken.isBlank()) {
+    public AuthResponse.TokenRefresh refreshAccessToken(String refreshToken) {
+        String normalized = normalizeToken(refreshToken);
+        if (normalized.isBlank()) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
 
-        Member member = memberRepository.findByRefreshToken(refreshToken)
+        Member member = memberRepository.findByRefreshToken(normalized)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
 
-        if (!refreshToken.equals(member.getRefreshToken())) {
+        if (!normalized.equals(member.getRefreshToken())) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
         if (member.getRefreshTokenExpiresAt() == null
@@ -110,7 +132,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
         }
 
-        validateRefreshTokenFormat(refreshToken);
+        validateRefreshTokenFormat(normalized);
         validateMemberStatus(member);
 
         JwtTokenProvider.AccessTokenInfo accessTokenInfo = jwtTokenProvider.createAccessTokenInfo(member);
@@ -118,14 +140,22 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse.SimpleResult logout(AuthRequest.TokenRefresh request) {
-        String refreshToken = normalizeToken(request == null ? null : request.refreshToken());
-        if (refreshToken.isBlank()) {
-            return new AuthResponse.SimpleResult(true);
+    public AuthResponse.SimpleResult logout(String refreshToken, HttpServletResponse response) {
+        String normalized = normalizeToken(refreshToken);
+        if (!normalized.isBlank()) {
+            memberRepository.findByRefreshToken(normalized)
+                    .ifPresent(Member::clearRefreshToken);
         }
 
-        memberRepository.findByRefreshToken(refreshToken)
-                .ifPresent(Member::clearRefreshToken);
+        // 쿠키 삭제
+        ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
+                .httpOnly(true)
+                .sameSite("Lax")
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.setHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
 
         return new AuthResponse.SimpleResult(true);
     }

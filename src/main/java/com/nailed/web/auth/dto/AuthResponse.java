@@ -35,10 +35,10 @@ public class AuthResponse {
             String accessToken,
             String tokenType,
             long expiresIn,
-            LocalDateTime tokenExpiresAt,
-            String refreshToken,
-            long refreshExpiresIn,
-            LocalDateTime refreshTokenExpiresAt
+            LocalDateTime tokenExpiresAt
+           // String refreshToken,
+           // long refreshExpiresIn,
+            // LocalDateTime refreshTokenExpiresAt
     ) {
         public static Login from(
                 Member member,
@@ -53,10 +53,10 @@ public class AuthResponse {
                     accessTokenInfo.accessToken(),
                     accessTokenInfo.tokenType(),
                     accessTokenInfo.expiresIn(),
-                    accessTokenInfo.tokenExpiresAt(),
-                    refreshTokenInfo.refreshToken(),
-                    refreshTokenInfo.refreshExpiresIn(),
-                    refreshTokenInfo.refreshTokenExpiresAt()
+                    accessTokenInfo.tokenExpiresAt()
+                    // refreshTokenInfo.refreshToken(),
+//                    refreshTokenInfo.refreshExpiresIn(),
+//                    refreshTokenInfo.refreshTokenExpiresAt()
             );
         }
     }

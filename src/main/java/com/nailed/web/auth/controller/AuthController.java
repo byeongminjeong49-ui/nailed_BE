@@ -4,9 +4,12 @@ import com.nailed.common.response.ApiResponse;
 import com.nailed.web.auth.dto.AuthRequest;
 import com.nailed.web.auth.dto.AuthResponse;
 import com.nailed.web.auth.service.AuthService;
+
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,20 +42,21 @@ public class AuthController {
 
     @PostMapping("/api/auth/login")
     public ResponseEntity<ApiResponse<AuthResponse.Login>> login(
-            @Valid @RequestBody AuthRequest.Login request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.login(request)));
+            @Valid @RequestBody AuthRequest.Login request, HttpServletResponse response) {
+        return ResponseEntity.ok(ApiResponse.success(authService.login(request, response)));
     }
 
     @PostMapping("/api/auth/refresh")
     public ResponseEntity<ApiResponse<AuthResponse.TokenRefresh>> refreshAccessToken(
-            @RequestBody AuthRequest.TokenRefresh request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.refreshAccessToken(request)));
+            @CookieValue(name = "refreshToken", required = false) String refreshToken) {
+        return ResponseEntity.ok(ApiResponse.success(authService.refreshAccessToken(refreshToken)));
     }
 
     @PostMapping("/api/auth/logout")
     public ResponseEntity<ApiResponse<AuthResponse.SimpleResult>> logout(
-            @RequestBody(required = false) AuthRequest.TokenRefresh request) {
-        return ResponseEntity.ok(ApiResponse.success(authService.logout(request)));
+            @CookieValue(name = "refreshToken", required = false) String refreshToken,
+            HttpServletResponse response) {
+        return ResponseEntity.ok(ApiResponse.success(authService.logout(refreshToken, response)));
     }
 
   
