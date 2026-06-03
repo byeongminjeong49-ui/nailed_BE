@@ -59,6 +59,7 @@ public class OrderService {
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
         order.markAsPaid();
+        productRepository.updateProductStatus(req.getProductId(), ProductStatus.SOLD);
         return OrderResponseDto.from(orderRepository.save(order), shippingFee, productPrice);
     }
 
