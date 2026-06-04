@@ -12,7 +12,6 @@ import java.net.URI;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*", allowedHeaders = "*")
 public class OrderController {
     private final OrderService orderService;
     private final ShippingService shippingService;
@@ -62,8 +61,8 @@ public class OrderController {
     // PATCH /api/orders/{orderId}/confirm — 주문 확인 (판매자)
     @PatchMapping("/{orderId}/confirm")
     public ResponseEntity<?> confirmOrder(
-            @PathVariable String orderId,
-            @RequestParam String sellerId) {
+    		@PathVariable("orderId") String orderId,  
+            @RequestParam("sellerId") String sellerId) {
         return ResponseEntity.ok(orderService.confirmOrder(orderId, sellerId));
     }
     // POST /api/orders/{orderId}/cancel

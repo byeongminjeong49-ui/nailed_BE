@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * 택배사 코드
  * DB: orders.carrier_code VARCHAR(20)
- * 주석값: CJ/KOREA_POST/LOTTE 등
+ * 주석값: CJ/KOREA_POST/LOTTE/HANJIN/LOGEN
  */
 @Getter
 @RequiredArgsConstructor

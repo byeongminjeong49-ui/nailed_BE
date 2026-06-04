@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ShippingRequestDto {
 
-    // 택배사 코드 (CJ / KOREA_POST / LOTTE / HANJIN 등)
+    // 택배사 코드 (CJ / KOREA_POST / LOTTE / HANJIN / LOGEN)
     @NotBlank(message = "택배사 코드는 필수입니다.")
     @Size(max = 20)
     private String carrierCode;
