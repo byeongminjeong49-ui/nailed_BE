@@ -10,7 +10,7 @@ public class ReportResponse {
             String reasonCode,      // FRAUD / MISLEADING_INFO / PROHIBITED_ITEM / ETC
             String reasonLabel,     // 사기 / 상품 정보 허위/불일치 / 금지상품 / 기타
             String detail,
-            String reportStatus,    // PENDING / APPROVED / REJECTED / DONE
+            String reportStatus,    // APPROVED / REJECTED / DONE
             LocalDateTime createdAt
     ) {
         public static Detail from(Report report) {
@@ -26,7 +26,6 @@ public class ReportResponse {
             );
         }
     }
-
     public record Summary(
             String reportId,
             String targetMemberId,
@@ -35,6 +34,7 @@ public class ReportResponse {
             String reasonLabel,
             String detail,
             String reportStatus,
+            String processedReason,
             LocalDateTime createdAt
     ) {
         public static Summary from(Report report) {
@@ -46,6 +46,7 @@ public class ReportResponse {
                     report.getReasonCode().getLabel(),
                     report.getDetail(),
                     report.getReportStatus().name(),
+                    report.getProcessedReason(),
                     report.getCreatedAt()
             );
         }
