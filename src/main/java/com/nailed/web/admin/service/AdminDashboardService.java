@@ -70,10 +70,10 @@ public class AdminDashboardService {
     private AdminDashboardResponse.SalesStats salesStats() {
         Object[] row = singleRow("""
                 SELECT COUNT(*),
-                       COALESCE(SUM((final_price * commission) DIV 100), 0),
+                       COALESCE(SUM(ROUND((final_price * commission / 100), -1)), 0),
                        COALESCE(SUM(final_price), 0)
                 FROM orders
-                WHERE order_status = 'DELIVERED'
+                WHERE order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
                 """);
         return new AdminDashboardResponse.SalesStats(
                 number(row[0]).longValue(),

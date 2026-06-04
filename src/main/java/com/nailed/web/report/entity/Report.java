@@ -46,11 +46,11 @@ public class Report extends CreatedOnlyEntity {
     @JoinColumn(name = "target_member_id", nullable = false)
     private Member targetMember;
 
-    // 처리 상태 (PENDING / APPROVED / REJECTED / DONE)
+    // 처리 상태 (APPROVED / REJECTED / DONE)
     @Enumerated(EnumType.STRING)
     @Column(name = "report_status", length = 20, nullable = false)
     @Builder.Default
-    private ReportStatus reportStatus = ReportStatus.PENDING;
+    private ReportStatus reportStatus = ReportStatus.APPROVED;
 
     // 관리자 처리 사유
     @Column(name = "processed_reason", length = 500)
@@ -61,12 +61,6 @@ public class Report extends CreatedOnlyEntity {
     private LocalDateTime processedAt;
 
     // ── 비즈니스 메서드 (관리자 처리용) ─────────────────────
-
-    public void approve(String reason) {
-        this.reportStatus = ReportStatus.APPROVED;
-        this.processedReason = reason;
-        this.processedAt = LocalDateTime.now();
-    }
 
     public void reject(String reason) {
         this.reportStatus = ReportStatus.REJECTED;

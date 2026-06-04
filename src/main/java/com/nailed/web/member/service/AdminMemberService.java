@@ -2,6 +2,7 @@ package com.nailed.web.member.service;
 
 import com.nailed.common.enums.MemberStatus;
 import com.nailed.common.enums.Role;
+import com.nailed.common.enums.SellerGrade;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.PageResponse;
@@ -24,11 +25,13 @@ public class AdminMemberService {
             String keyword,
             String role,
             String status,
+            String sellerGrade,
             Pageable pageable) {
         return PageResponse.of(memberRepository.searchAdminMembers(
                 blankToNull(keyword),
                 parseRole(role),
                 parseStatus(status),
+                parseSellerGrade(sellerGrade),
                 pageable
         ).map(this::toSummary));
     }
@@ -64,6 +67,18 @@ public class AdminMemberService {
         }
         try {
             return MemberStatus.valueOf(value.toUpperCase()).name();
+        } catch (IllegalArgumentException e) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+    }
+
+    private String parseSellerGrade(String sellerGrade) {
+        String value = blankToNull(sellerGrade);
+        if (value == null) {
+            return null;
+        }
+        try {
+            return SellerGrade.valueOf(value.toUpperCase()).name();
         } catch (IllegalArgumentException e) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }

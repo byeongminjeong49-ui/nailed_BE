@@ -271,6 +271,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             WHERE (:keyword IS NULL
                 OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:productStatus IS NULL OR p.productStatus = :productStatus)
@@ -290,6 +291,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             WHERE (:keyword IS NULL
                 OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(s.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(s.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:productStatus IS NULL OR p.productStatus = :productStatus)

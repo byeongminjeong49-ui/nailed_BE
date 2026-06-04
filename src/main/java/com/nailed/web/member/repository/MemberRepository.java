@@ -31,11 +31,13 @@ public interface MemberRepository extends JpaRepository<Member, String> {
                 OR LOWER(m.nickname) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:role IS NULL OR m.role = :role)
               AND (:status IS NULL OR m.memberStatus = :status)
+              AND (:sellerGrade IS NULL OR m.sellerGrade = :sellerGrade)
             """)
     Page<Member> searchAdminMembers(
             @Param("keyword") String keyword,
             @Param("role") String role,
             @Param("status") String status,
+            @Param("sellerGrade") String sellerGrade,
             Pageable pageable);
     @Query(value = "SELECT profile_image_url FROM members WHERE member_id = :memberId", nativeQuery = true)
     Optional<String> findProfileImageUrlByMemberId(@Param("memberId") String memberId);

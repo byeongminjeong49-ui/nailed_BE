@@ -12,8 +12,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum ReportStatus {
 
-    PENDING("처리대기", "신고가 접수되어 처리 대기 중인 상태"),
-    APPROVED("승인", "신고가 승인되어 제재 처리된 상태"),
+    APPROVED("승인", "신고가 승인되어 접수된 상태"),
     REJECTED("반려", "신고가 반려된 상태"),
     DONE("완료", "신고 처리가 모두 완료된 상태");
 

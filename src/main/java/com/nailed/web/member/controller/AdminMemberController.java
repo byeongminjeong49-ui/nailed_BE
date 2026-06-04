@@ -26,11 +26,13 @@ public class AdminMemberController {
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String sellerGrade,
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
         return ResponseEntity.ok(ApiResponse.success(adminMemberService.getMembers(
                 keyword,
                 role,
                 status,
+                sellerGrade,
                 pageable
         )));
     }
