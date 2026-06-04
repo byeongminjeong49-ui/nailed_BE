@@ -22,7 +22,12 @@ public class AdminOrderResponse {
             Integer sellerSettlementAmount,
             LocalDateTime paidAt,
             LocalDateTime completedAt,
-            LocalDateTime updatedAt
+            LocalDateTime updatedAt,
+            String previousStatus,
+            String cancelRequestReason,
+            LocalDateTime requestedAt,
+            LocalDateTime shippedAt,
+            LocalDateTime cancelledAt
     ) {}
 
     public record ProductInfo(

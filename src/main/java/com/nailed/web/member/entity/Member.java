@@ -118,4 +118,14 @@ public class Member extends BaseEntity {
         this.loginFailCount = 0;
         this.loginFailStartedAt = null;
     }
+
+    public void suspendUntil(LocalDateTime endsAt) {
+        this.memberStatus = "SUSPEND";
+        this.lockedUntil = endsAt;
+    }
+
+    public void ban() {
+        this.memberStatus = "BANNED";
+        this.lockedUntil = null;
+    }
 }

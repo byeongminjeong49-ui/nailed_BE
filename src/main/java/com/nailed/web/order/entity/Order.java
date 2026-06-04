@@ -76,6 +76,10 @@ public class Order {
         this.cancelRequestStatus = "APPROVED";
         this.cancelRespondedAt = LocalDateTime.now();
     }
+    public void cancelByAdmin(String reason) {
+        this.cancelRequestReason = reason;
+        cancel();
+    }
     public void requestCancel(String reason) {
         this.cancelRequestStatus = "REQUESTED";
         this.cancelRequestReason = reason;

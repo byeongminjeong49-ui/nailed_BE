@@ -54,6 +54,23 @@ public class AdminProductService {
                 toSummary(product, thumbnailMap.get(product.getProductId()))));
     }
 
+    @Transactional
+    public void hideProduct(Long productId, String reason) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (product.getProductStatus() == ProductStatus.DELETED || product.getDeletedAt() != null) {
+            throw new CustomException(ErrorCode.PRODUCT_DELETED);
+        }
+
+        String trimmedReason = blankToNull(reason);
+        if (trimmedReason == null || trimmedReason.length() > 500) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        product.delete(trimmedReason);
+    }
+
     private AdminProductResponse.Summary toSummary(Product product, String thumbnailUrl) {
         ProductGroup brand = product.getBrand();
         ProductGroup category = product.getCategory();

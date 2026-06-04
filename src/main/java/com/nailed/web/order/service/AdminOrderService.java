@@ -1,11 +1,13 @@
 package com.nailed.web.order.service;
 
 import com.nailed.common.enums.OrderStatus;
+import com.nailed.common.enums.ProductStatus;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.PageResponse;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
+import com.nailed.web.order.dto.AdminOrderCancelRequest;
 import com.nailed.web.order.dto.AdminOrderResponse;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
@@ -88,8 +90,35 @@ public class AdminOrderService {
                 order.getSellerSettlementAmount(),
                 order.getPaidAt(),
                 completedAt(order),
-                order.getUpdatedAt()
+                order.getUpdatedAt(),
+                order.getPreviousStatus(),
+                order.getCancelRequestReason(),
+                order.getRequestedAt(),
+                order.getShippedAt(),
+                order.getCancelledAt()
         );
+    }
+
+    @Transactional
+    public AdminOrderResponse.Summary cancelOrder(String orderId, AdminOrderCancelRequest request) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
+
+        validateCancelableStatus(order.getOrderStatus());
+
+        String reason = blankToNull(request.reason());
+        if (reason == null || reason.length() > 500) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        order.cancelByAdmin(reason);
+
+        int updatedProductCount = productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
+        if (updatedProductCount == 0) {
+            throw new CustomException(ErrorCode.PRODUCT_NOT_FOUND);
+        }
+
+        return toSummary(order);
     }
 
     private AdminOrderResponse.ProductInfo toProductInfo(Product product) {
@@ -149,6 +178,23 @@ public class AdminOrderService {
             return order.getCancelledAt();
         }
         return null;
+    }
+
+    private void validateCancelableStatus(String orderStatus) {
+        if (OrderStatus.PAID.name().equals(orderStatus)
+                || OrderStatus.REQUESTED.name().equals(orderStatus)
+                || OrderStatus.SHIPPING.name().equals(orderStatus)) {
+            return;
+        }
+        throw new CustomException(ErrorCode.CANCEL_NOT_ALLOWED);
+    }
+
+    private AdminOrderResponse.Summary toSummary(Order order) {
+        List<Order> orders = List.of(order);
+        Map<String, Member> memberMap = buildMemberMap(orders);
+        Map<Long, Product> productMap = buildProductMap(orders);
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productMap.keySet());
+        return toSummary(order, memberMap, productMap, thumbnailMap);
     }
 
     private String parseOrderStatus(String orderStatus) {

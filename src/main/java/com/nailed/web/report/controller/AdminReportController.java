@@ -2,8 +2,11 @@ package com.nailed.web.report.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
+import com.nailed.web.report.dto.AdminReportPenalizeRequest;
+import com.nailed.web.report.dto.AdminReportRejectRequest;
 import com.nailed.web.report.dto.AdminReportResponse;
 import com.nailed.web.report.service.AdminReportService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -11,7 +14,10 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,5 +48,19 @@ public class AdminReportController {
                 dateTo,
                 pageable
         )));
+    }
+
+    @PatchMapping("/{reportId}/reject")
+    public ResponseEntity<ApiResponse<AdminReportResponse.Summary>> rejectReport(
+            @PathVariable String reportId,
+            @Valid @RequestBody AdminReportRejectRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(adminReportService.rejectReport(reportId, request)));
+    }
+
+    @PatchMapping("/{reportId}/penalize")
+    public ResponseEntity<ApiResponse<AdminReportResponse.Summary>> penalizeReport(
+            @PathVariable String reportId,
+            @Valid @RequestBody AdminReportPenalizeRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(adminReportService.penalizeReport(reportId, request)));
     }
 }

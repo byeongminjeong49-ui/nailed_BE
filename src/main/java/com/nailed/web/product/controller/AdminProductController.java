@@ -2,15 +2,20 @@ package com.nailed.web.product.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
+import com.nailed.web.product.dto.AdminProductHideRequest;
 import com.nailed.web.product.dto.AdminProductResponse;
 import com.nailed.web.product.service.AdminProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,5 +46,13 @@ public class AdminProductController {
                 sellerKeyword,
                 pageable
         )));
+    }
+
+    @PatchMapping("/{productId}/hide")
+    public ResponseEntity<ApiResponse<Void>> hideProduct(
+            @PathVariable Long productId,
+            @Valid @RequestBody AdminProductHideRequest request) {
+        adminProductService.hideProduct(productId, request.reason());
+        return ResponseEntity.ok(ApiResponse.success());
     }
 }

@@ -5,7 +5,10 @@ import com.nailed.common.enums.ReportStatus;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.PageResponse;
+import com.nailed.web.member.service.AdminMemberService;
 import com.nailed.web.member.entity.Member;
+import com.nailed.web.report.dto.AdminReportPenalizeRequest;
+import com.nailed.web.report.dto.AdminReportRejectRequest;
 import com.nailed.web.report.dto.AdminReportResponse;
 import com.nailed.web.report.entity.Report;
 import com.nailed.web.report.repository.ReportRepository;
@@ -25,6 +28,7 @@ public class AdminReportService {
     private static final String TARGET_TYPE_MEMBER = "MEMBER";
 
     private final ReportRepository reportRepository;
+    private final AdminMemberService adminMemberService;
 
     public PageResponse<AdminReportResponse.Summary> getReports(
             String keyword,
@@ -46,6 +50,46 @@ public class AdminReportService {
         );
 
         return PageResponse.of(page.map(this::toSummary));
+    }
+
+    @Transactional
+    public AdminReportResponse.Summary rejectReport(String reportId, AdminReportRejectRequest request) {
+        Report report = findReport(reportId);
+        validateProcessable(report);
+
+        String reason = blankToNull(request.reason());
+        if (reason == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        report.reject(reason);
+        return toSummary(report);
+    }
+
+    @Transactional
+    public AdminReportResponse.Summary penalizeReport(String reportId, AdminReportPenalizeRequest request) {
+        Report report = findReport(reportId);
+        validateProcessable(report);
+
+        Member targetMember = report.getTargetMember();
+        if (targetMember == null) {
+            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+        }
+
+        String reason = blankToNull(request.reason());
+        if (request.penaltyType() == null || reason == null) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        adminMemberService.createPenaltyFromReport(
+                targetMember,
+                request.penaltyType(),
+                reason,
+                request.penaltyDays(),
+                report.getReportId()
+        );
+        report.done(reason);
+        return toSummary(report);
     }
 
     private AdminReportResponse.Summary toSummary(Report report) {
@@ -70,6 +114,17 @@ public class AdminReportService {
                 report.getProcessedAt(),
                 report.getCreatedAt()
         );
+    }
+
+    private Report findReport(String reportId) {
+        return reportRepository.findById(reportId)
+                .orElseThrow(() -> new CustomException(ErrorCode.REPORT_NOT_FOUND));
+    }
+
+    private void validateProcessable(Report report) {
+        if (report.getReportStatus() != ReportStatus.APPROVED) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     private void validateTargetType(String targetType) {
