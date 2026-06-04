@@ -109,8 +109,8 @@ public class OrderService {
         if (!buyerId.equals(order.getBuyerId())) {
             throw new IllegalStateException("구매자만 주문을 취소할 수 있습니다.");
         }
-        if (!List.of(OrderStatus.PAID.name(), OrderStatus.REQUESTED.name()).contains(order.getOrderStatus())) {
-            throw new IllegalStateException("결제완료 또는 주문접수 상태의 주문만 취소할 수 있습니다.");
+        if (!OrderStatus.PAID.name().equals(order.getOrderStatus())) {
+            throw new IllegalStateException("결제완료 상태의 주문만 취소할 수 있습니다.");
         }
         orderRepository.cancelOrder(orderId);
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
