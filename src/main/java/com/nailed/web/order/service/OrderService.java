@@ -40,7 +40,7 @@ public class OrderService {
         int shippingFee         = product.getShippingFee();
         int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
         int finalPrice          = productPrice + shippingFee + commissionAmount;
-        int sellerSettlementAmount = finalPrice - commissionAmount;
+        int sellerSettlementAmount = (int) (Math.round((finalPrice - ((finalPrice * DEFAULT_COMMISSION_RATE) / 100.0)) / 10.0) * 10);
 
         Order order = Order.builder()
                 .orderId(generateOrderId())
