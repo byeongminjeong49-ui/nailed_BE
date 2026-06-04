@@ -62,4 +62,5 @@ public interface ReportRepository extends JpaRepository<Report, String> {
             @Param("dateFrom") LocalDateTime dateFrom,
             @Param("dateTo") LocalDateTime dateTo,
             Pageable pageable);
+    Page<Report> findByReporter_MemberIdOrderByCreatedAtDesc(String memberId, Pageable pageable);
 }

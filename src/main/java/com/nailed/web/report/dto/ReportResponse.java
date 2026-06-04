@@ -1,11 +1,7 @@
 package com.nailed.web.report.dto;
-
 import com.nailed.web.report.entity.Report;
-
 import java.time.LocalDateTime;
-
 public class ReportResponse {
-
     /** 신고 접수 결과 */
     public record Detail(
             String reportId,
@@ -22,6 +18,30 @@ public class ReportResponse {
                     report.getReportId(),
                     report.getReporter().getMemberId(),
                     report.getTargetMember().getMemberId(),
+                    report.getReasonCode().name(),
+                    report.getReasonCode().getLabel(),
+                    report.getDetail(),
+                    report.getReportStatus().name(),
+                    report.getCreatedAt()
+            );
+        }
+    }
+
+    public record Summary(
+            String reportId,
+            String targetMemberId,
+            String targetNickname,
+            String reasonCode,
+            String reasonLabel,
+            String detail,
+            String reportStatus,
+            LocalDateTime createdAt
+    ) {
+        public static Summary from(Report report) {
+            return new Summary(
+                    report.getReportId(),
+                    report.getTargetMember().getMemberId(),
+                    report.getTargetMember().getNickname(),
                     report.getReasonCode().name(),
                     report.getReasonCode().getLabel(),
                     report.getDetail(),
