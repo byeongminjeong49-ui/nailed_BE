@@ -1,5 +1,4 @@
 package com.nailed.web.order.service;
-import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.member.service.SellerGradeService;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
