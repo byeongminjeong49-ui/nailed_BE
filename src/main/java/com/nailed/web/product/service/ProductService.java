@@ -50,11 +50,6 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ProductService {
 
-    private static final List<String> SELLER_GRADE_TARGET_STATUSES = List.of(
-            OrderStatus.PAID.name(),
-            OrderStatus.SHIPPING.name(),
-            OrderStatus.DELIVERED.name()
-    );
     private static final String MENS_CATEGORY_CODE = "MENS";
     private static final String WOMENS_CATEGORY_CODE = "WOMENS";
 
@@ -458,8 +453,7 @@ public class ProductService {
 
     /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
-    	long completedCount = orderRepository.countBySellerIdAndOrderStatusIn(
-    	        seller.getMemberId(), SELLER_GRADE_TARGET_STATUSES);
+        long reviewCount = reviewRepository.countByOrderSellerId(seller.getMemberId());
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);
@@ -471,7 +465,7 @@ public class ProductService {
                 seller.getMemberId(),
                 seller.getNickname(),
                 seller.getSellerGrade(),
-                completedCount,
+                reviewCount,
                 avgRating,
                 profileImageUrl
         );

@@ -49,7 +49,7 @@ public class ProductResponse {
             String memberId,
             String nickname,
             String sellerGrade,         // BRONZE / SILVER / GOLD / DIAMOND
-            long completedOrderCount,   // 거래완료 건수
+            long reviewCount,           // 리뷰 건수
             Double averageRating,       // 평균 평점 (리뷰 없으면 null)
             String profileImageUrl
     ) {}
