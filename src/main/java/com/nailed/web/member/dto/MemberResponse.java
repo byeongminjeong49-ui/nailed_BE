@@ -76,13 +76,14 @@ public class MemberResponse {
             String orderStatus,
             LocalDateTime paidAt,
             String bankCode,
+            String accountNumber,
             String depositorName
     ) {}
+
     public record AccountInfo(
             String bankCode,
             String accountNumber,
             String depositorName
-   
     ) {}
 
 }

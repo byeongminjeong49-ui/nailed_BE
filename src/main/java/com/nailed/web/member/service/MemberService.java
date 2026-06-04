@@ -172,10 +172,10 @@ public class MemberService {
 
         Query dataQuery = entityManager.createNativeQuery(
                 "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
-                		+ "p.price, p.shipping_fee, o.final_price, o.order_status, "
-                + "o.previous_status, o.cancel_request_status, o.paid_at, o.shipped_at, "		
-                + "o.delivered_at, o.cancelled_at "
-                + baseSql + " ORDER BY o.paid_at DESC");
+                        + "p.price, p.shipping_fee, o.final_price, o.order_status, "
+                        + "o.previous_status, o.cancel_request_status, o.paid_at, o.shipped_at, "
+                        + "o.delivered_at, o.cancelled_at "
+                        + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
         setMemberAndStatus(dataQuery, memberId, status);
@@ -210,7 +210,7 @@ public class MemberService {
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT o.order_id, o.product_id, p.title, pi.image_url, o.commission,
                        o.final_price, o.seller_settlement_amount, o.order_status, o.paid_at,
-                       m.bank_code, m.depositor_name
+                       m.bank_code, m.account_number, m.depositor_name
                 """ + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -300,9 +300,7 @@ public class MemberService {
 
     private void validateNickname(String memberId, String nickname) {
         String value = blankToNull(nickname);
-        if (value == null) {
-            return;
-        }
+        if (value == null) return;
 
         Number duplicated = number(entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM members
@@ -413,8 +411,9 @@ public class MemberService {
                 number(row[6]).intValue(),
                 string(row[7]),
                 time(row[8]),
-                string(row[9]),
-                string(row[10])
+                string(row[9]),   // bankCode
+                string(row[10]),  // accountNumber
+                string(row[11])   // depositorName
         );
     }
 
@@ -434,15 +433,9 @@ public class MemberService {
     }
 
     private LocalDateTime time(Object value) {
-        if (value == null) {
-            return null;
-        }
-        if (value instanceof LocalDateTime localDateTime) {
-            return localDateTime;
-        }
-        if (value instanceof Timestamp timestamp) {
-            return timestamp.toLocalDateTime();
-        }
+        if (value == null) return null;
+        if (value instanceof LocalDateTime localDateTime) return localDateTime;
+        if (value instanceof Timestamp timestamp) return timestamp.toLocalDateTime();
         return null;
     }
 
