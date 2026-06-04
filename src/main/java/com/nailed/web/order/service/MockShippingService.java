@@ -3,7 +3,6 @@ import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
-import com.nailed.web.member.service.SellerGradeService;
 import com.nailed.web.product.entity.Product;
 import com.nailed.web.product.repository.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -19,7 +18,6 @@ public class MockShippingService implements ShippingService {
     private static final Set<String> ALLOWED_CARRIERS = Set.of("CJ","LOGEN", "HANJIN", "KOREA_POST", "LOTTE");
     private static final Pattern TRACKING_PATTERN = Pattern.compile("^[0-9]{10,13}$");
     private final OrderRepository orderRepository;
-    private final SellerGradeService sellerGradeService;
     private final ProductRepository productRepository;
     @Override
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
@@ -47,8 +45,6 @@ public class MockShippingService implements ShippingService {
         }
         order.markAsDelivered();
         Order savedOrder = orderRepository.save(order);
-        productRepository.updateProductStatus(savedOrder.getProductId(), ProductStatus.SOLD);
-        sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
         Product product = productRepository.findById(savedOrder.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()));
         return OrderResponseDto.from(savedOrder, product.getShippingFee(), product.getPrice());

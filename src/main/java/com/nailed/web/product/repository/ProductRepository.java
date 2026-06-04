@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -129,7 +130,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // 조회수 +1 (DB에서 직접 덧셈 → Lost Update 방지, 삭제 상품 제외)
     // 반환값: 실제 업데이트된 행 수 (0이면 존재하지 않거나 삭제된 상품)
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("UPDATE Product p SET p.viewCount = p.viewCount + 1 " +
            "WHERE p.productId = :productId AND p.productStatus != :deleted")
     int incrementViewCount(@Param("productId") Long productId,
@@ -310,7 +312,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             Pageable pageable);
     
  // 상품 상태 변경 (배송완료 → SOLD / 주문취소 → ON_SALE 복구)
-    @Modifying
+    @Modifying(clearAutomatically = true)
+    @Transactional
     @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId = :productId")
     int updateProductStatus(@Param("productId") Long productId,
                             @Param("status") ProductStatus status);
