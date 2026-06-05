@@ -7,6 +7,7 @@ import com.nailed.web.admin.dto.AdminDashboardTrendResponse;
 import com.nailed.web.inquiry.repository.InquiryRepository;
 import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.report.repository.ReportRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -43,6 +44,7 @@ public class AdminDashboardService {
 
     private final MemberRepository memberRepository;
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
     private final ReportRepository reportRepository;
     private final InquiryRepository inquiryRepository;
 
@@ -79,6 +81,8 @@ public class AdminDashboardService {
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
         Map<String, Long> inquiries = toValueMap(inquiryRepository.countInquiriesByPeriod(
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> onSaleProducts = toValueMap(productRepository.countOnSaleProductsByPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
 
         List<AdminDashboardTrendResponse.TrendPoint> points = trendRange.labels().stream()
                 .map(label -> new AdminDashboardTrendResponse.TrendPoint(
@@ -87,7 +91,8 @@ public class AdminDashboardService {
                         sales.getOrDefault(label, 0L),
                         orders.getOrDefault(label, 0L),
                         reports.getOrDefault(label, 0L),
-                        inquiries.getOrDefault(label, 0L)
+                        inquiries.getOrDefault(label, 0L),
+                        onSaleProducts.getOrDefault(label, 0L)
                 ))
                 .toList();
 

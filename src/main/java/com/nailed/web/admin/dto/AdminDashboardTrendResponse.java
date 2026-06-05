@@ -14,6 +14,7 @@ public record AdminDashboardTrendResponse(
             Long sales,
             Long orders,
             Long reports,
-            Long inquiries
+            Long inquiries,
+            Long onSaleProducts
     ) {}
 }

@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -130,6 +131,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     // 조회수 +1 (DB에서 직접 덧셈 → Lost Update 방지, 삭제 상품 제외)
     // 반환값: 실제 업데이트된 행 수 (0이면 존재하지 않거나 삭제된 상품)
+    // Admin dashboard trends: newly created products that are currently ON_SALE.
+    @Query(value = """
+            SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count
+            FROM products
+            WHERE product_status = 'ON_SALE'
+              AND deleted_at IS NULL
+              AND created_at >= :startAt
+              AND created_at < :endAt
+            GROUP BY DATE_FORMAT(created_at, :dateFormat)
+            """, nativeQuery = true)
+    List<Object[]> countOnSaleProductsByPeriod(
+            @Param("dateFormat") String dateFormat,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
+
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Product p SET p.viewCount = p.viewCount + 1 " +
