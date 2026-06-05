@@ -3,6 +3,7 @@ package com.nailed.web.auth.service;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.List;
 
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
@@ -49,9 +50,51 @@ public class AuthService {
         return new AuthResponse.DuplicateCheck(memberRepository.existsByNickname(nickname));
     }
 
-    @Transactional
+    // 관리자 전용 예약 키워드 (대소문자 무시)
+    private static final List<String> ADMIN_RESERVED_KEYWORDS = List.of(
+        // 관리자 관련
+        "관리자", "관리원", "관리팀", "관리부",
+        "admin", "administrator", "superadmin", "sysadmin",
+        "어드민", "어드미니스트레이터",
+        "MEMBER_000",
+        // 운영자 관련
+        "운영자", "운영팀", "운영진", "운영부", "운영원",
+        "operator", "manager", "moderator",
+        "오퍼레이터", "매니저", "모더레이터",
+        // Nailed 브랜드 사칭
+        "nailed", "네일드", "네일",
+        "nailedadmin", "nailedofficial",
+        // 공식/시스템 사칭
+        "공식", "official", "공식계정", "공식운영",
+        "시스템", "system",
+        "고객센터", "고객지원", "support",
+        "staff", "스태프",
+        "master", "마스터",
+        "root", "루트",
+        // 사칭 가능성
+        "총괄", "총관리", "책임자",
+        "대표", "대표자",
+        "임원", "직원",
+        "bot", "봇"
+    );
+
+    private void validateNotAdminKeyword(String value) {
+        if (value == null) return;
+        String lower = value.toLowerCase().replaceAll("\\s", "");
+        for (String keyword : ADMIN_RESERVED_KEYWORDS) {
+            if (lower.contains(keyword.toLowerCase().replaceAll("\\s", ""))) {
+                throw new CustomException(ErrorCode.FORBIDDEN);
+            }
+        }
+    }
+
     public AuthResponse.Signup signup(AuthRequest.Signup request) {
         String userid = normalizeUserid(request.userid());
+
+        // 관리자 예약 키워드 차단
+        validateNotAdminKeyword(userid);
+        validateNotAdminKeyword(request.nickname());
+        validateNotAdminKeyword(request.name());
 
         if (memberRepository.existsByUserid(userid)) {
             throw new CustomException(ErrorCode.MEMBER_ALREADY_EXISTS);
@@ -61,14 +104,14 @@ public class AuthService {
             throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
         }
 
-        
-
+        // ADMIN role은 회원가입으로 취득 불가 - 무조건 USER로 고정
         Member member = Member.builder()
                 .memberId(generateMemberId())
                 .userid(userid)
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
                 .name(request.name())
+                .role("USER")
                 .marketingAgreed(request.marketingAgreed())
                 .build();
 
