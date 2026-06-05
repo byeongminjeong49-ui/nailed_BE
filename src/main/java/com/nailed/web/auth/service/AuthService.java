@@ -139,7 +139,8 @@ public class AuthService {
         JwtTokenProvider.AccessTokenInfo accessTokenInfo = jwtTokenProvider.createAccessTokenInfo(member);
         JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);
         member.updateRefreshToken(refreshTokenInfo.refreshToken(), refreshTokenInfo.refreshTokenExpiresAt());
-        
+        memberRepository.save(member);
+        System.out.println("** refresh 토큰 발급 후 update 완료->"+member);
         
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshTokenInfo.refreshToken())
                 .httpOnly(true)  //JS접근불가: document.cookie 로 읽을수없음 (XSS 공격 방어)
