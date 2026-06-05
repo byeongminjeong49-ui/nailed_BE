@@ -7,6 +7,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.repository.query.Param;
 import java.time.LocalDateTime;
@@ -63,4 +64,17 @@ public interface ReportRepository extends JpaRepository<Report, String> {
             @Param("dateTo") LocalDateTime dateTo,
             Pageable pageable);
     Page<Report> findByReporter_MemberIdOrderByCreatedAtDesc(String memberId, Pageable pageable);
+
+    @Query(value = """
+            SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count
+            FROM reports
+            WHERE report_status IN ('APPROVED', 'REJECTED', 'DONE')
+              AND created_at >= :startAt
+              AND created_at < :endAt
+            GROUP BY DATE_FORMAT(created_at, :dateFormat)
+            """, nativeQuery = true)
+    List<Object[]> countReportsByPeriod(
+            @Param("dateFormat") String dateFormat,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
 }

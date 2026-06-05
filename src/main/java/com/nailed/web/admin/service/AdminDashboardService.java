@@ -1,20 +1,50 @@
 package com.nailed.web.admin.service;
 
+import com.nailed.common.exception.CustomException;
+import com.nailed.common.exception.ErrorCode;
 import com.nailed.web.admin.dto.AdminDashboardResponse;
+import com.nailed.web.admin.dto.AdminDashboardTrendResponse;
+import com.nailed.web.inquiry.repository.InquiryRepository;
+import com.nailed.web.member.repository.MemberRepository;
+import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.report.repository.ReportRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminDashboardService {
+
+    private static final String PERIOD_DAILY = "DAILY";
+    private static final String PERIOD_MONTHLY = "MONTHLY";
+    private static final int DEFAULT_DAILY_RANGE = 30;
+    private static final int DEFAULT_MONTHLY_RANGE = 12;
+    private static final int MAX_DAILY_RANGE = 90;
+    private static final int MAX_MONTHLY_RANGE = 36;
+    private static final DateTimeFormatter DAILY_LABEL_FORMAT = DateTimeFormatter.ISO_LOCAL_DATE;
+    private static final DateTimeFormatter MONTHLY_LABEL_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM");
+    private static final String MYSQL_DAILY_FORMAT = "%Y-%m-%d";
+    private static final String MYSQL_MONTHLY_FORMAT = "%Y-%m";
+
+    private final MemberRepository memberRepository;
+    private final OrderRepository orderRepository;
+    private final ReportRepository reportRepository;
+    private final InquiryRepository inquiryRepository;
 
     @PersistenceContext
     private EntityManager entityManager;
@@ -32,6 +62,36 @@ public class AdminDashboardService {
                 recentProducts(),
                 recentMembers()
         );
+    }
+
+    public AdminDashboardTrendResponse getDashboardTrends(String period, Integer range) {
+        String normalizedPeriod = normalizePeriod(period);
+        int normalizedRange = normalizeRange(normalizedPeriod, range);
+        TrendRange trendRange = buildTrendRange(normalizedPeriod, normalizedRange);
+
+        Map<String, Long> members = toValueMap(memberRepository.countUserMembersByPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> sales = toValueMap(orderRepository.sumSalesByRequestedPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> orders = toValueMap(orderRepository.countOrdersByRequestedPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> reports = toValueMap(reportRepository.countReportsByPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> inquiries = toValueMap(inquiryRepository.countInquiriesByPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+
+        List<AdminDashboardTrendResponse.TrendPoint> points = trendRange.labels().stream()
+                .map(label -> new AdminDashboardTrendResponse.TrendPoint(
+                        label,
+                        members.getOrDefault(label, 0L),
+                        sales.getOrDefault(label, 0L),
+                        orders.getOrDefault(label, 0L),
+                        reports.getOrDefault(label, 0L),
+                        inquiries.getOrDefault(label, 0L)
+                ))
+                .toList();
+
+        return new AdminDashboardTrendResponse(normalizedPeriod, normalizedRange, points);
     }
 
     private AdminDashboardResponse.MemberStats memberStats() {
@@ -84,8 +144,8 @@ public class AdminDashboardService {
 
     private AdminDashboardResponse.ReportStats reportStats() {
         return new AdminDashboardResponse.ReportStats(
-                count("SELECT COUNT(*) FROM reports"),
-                count("SELECT COUNT(*) FROM reports WHERE report_status = 'PENDING'"),
+                count("SELECT COUNT(*) FROM reports WHERE report_status IN ('APPROVED', 'REJECTED', 'DONE')"),
+                0,
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'APPROVED'"),
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'REJECTED'"),
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'DONE'")
@@ -183,6 +243,64 @@ public class AdminDashboardService {
                 .toList();
     }
 
+    private String normalizePeriod(String period) {
+        if (period == null || period.isBlank()) {
+            return PERIOD_DAILY;
+        }
+        String value = period.trim().toUpperCase();
+        if (PERIOD_DAILY.equals(value) || PERIOD_MONTHLY.equals(value)) {
+            return value;
+        }
+        throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+    }
+
+    private int normalizeRange(String period, Integer range) {
+        int defaultRange = PERIOD_MONTHLY.equals(period) ? DEFAULT_MONTHLY_RANGE : DEFAULT_DAILY_RANGE;
+        int maxRange = PERIOD_MONTHLY.equals(period) ? MAX_MONTHLY_RANGE : MAX_DAILY_RANGE;
+        if (range == null) {
+            return defaultRange;
+        }
+        if (range < 1) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        return Math.min(range, maxRange);
+    }
+
+    private TrendRange buildTrendRange(String period, int range) {
+        if (PERIOD_MONTHLY.equals(period)) {
+            YearMonth currentMonth = YearMonth.now();
+            YearMonth startMonth = currentMonth.minusMonths(range - 1L);
+            LocalDateTime startAt = startMonth.atDay(1).atStartOfDay();
+            LocalDateTime endAt = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
+            List<String> labels = new ArrayList<>();
+            for (int i = 0; i < range; i++) {
+                labels.add(startMonth.plusMonths(i).format(MONTHLY_LABEL_FORMAT));
+            }
+            return new TrendRange(MYSQL_MONTHLY_FORMAT, startAt, endAt, labels);
+        }
+
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(range - 1L);
+        LocalDateTime startAt = startDate.atStartOfDay();
+        LocalDateTime endAt = today.plusDays(1).atStartOfDay();
+        List<String> labels = new ArrayList<>();
+        for (int i = 0; i < range; i++) {
+            labels.add(startDate.plusDays(i).format(DAILY_LABEL_FORMAT));
+        }
+        return new TrendRange(MYSQL_DAILY_FORMAT, startAt, endAt, labels);
+    }
+
+    private Map<String, Long> toValueMap(List<Object[]> rows) {
+        Map<String, Long> values = new HashMap<>();
+        for (Object[] row : rows) {
+            String label = string(row[0]);
+            if (label != null) {
+                values.put(label, number(row[1]).longValue());
+            }
+        }
+        return values;
+    }
+
     private long count(String sql) {
         return number(entityManager.createNativeQuery(sql).getSingleResult()).longValue();
     }
@@ -225,4 +343,11 @@ public class AdminDashboardService {
         }
         return null;
     }
+
+    private record TrendRange(
+            String dateFormat,
+            LocalDateTime startAt,
+            LocalDateTime endAt,
+            List<String> labels
+    ) {}
 }

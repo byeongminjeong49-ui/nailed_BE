@@ -60,5 +60,34 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             @Param("dateFrom") LocalDateTime dateFrom,
             @Param("dateTo") LocalDateTime dateTo,
             Pageable pageable);
+
+    @Query(value = """
+            SELECT DATE_FORMAT(requested_at, :dateFormat) AS label,
+                   COALESCE(SUM(ROUND((final_price * commission / 100), -1)), 0) AS sales
+            FROM orders
+            WHERE order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
+              AND requested_at IS NOT NULL
+              AND requested_at >= :startAt
+              AND requested_at < :endAt
+            GROUP BY DATE_FORMAT(requested_at, :dateFormat)
+            """, nativeQuery = true)
+    List<Object[]> sumSalesByRequestedPeriod(
+            @Param("dateFormat") String dateFormat,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
+
+    @Query(value = """
+            SELECT DATE_FORMAT(requested_at, :dateFormat) AS label, COUNT(*) AS count
+            FROM orders
+            WHERE order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
+              AND requested_at IS NOT NULL
+              AND requested_at >= :startAt
+              AND requested_at < :endAt
+            GROUP BY DATE_FORMAT(requested_at, :dateFormat)
+            """, nativeQuery = true)
+    List<Object[]> countOrdersByRequestedPeriod(
+            @Param("dateFormat") String dateFormat,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
 }
 
