@@ -12,13 +12,15 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class OrderService {
 
-    private static final String ORDER_ID_PREFIX = "ORDER_";
     private static final int DEFAULT_COMMISSION_RATE = 2;
 
     private final OrderRepository orderRepository;
@@ -38,7 +40,7 @@ public class OrderService {
         int shippingFee         = product.getShippingFee();
         int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
         int finalPrice          = productPrice + shippingFee + commissionAmount;
-        int sellerSettlementAmount = (int) (Math.round((finalPrice - ((finalPrice * DEFAULT_COMMISSION_RATE) / 100.0)) / 10.0) * 10);
+        int sellerSettlementAmount = finalPrice - commissionAmount;
 
         Order order = Order.builder()
                 .orderId(generateOrderId())
@@ -118,12 +120,8 @@ public class OrderService {
     }
 
     private String generateOrderId() {
-        long num = orderRepository.count() + 1;
-        String candidateId;
-        do {
-            candidateId = ORDER_ID_PREFIX + String.format("%03d", num++);
-        } while (orderRepository.existsById(candidateId));
-        return candidateId;
+        return "ORD-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
+               + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
     }
 
     private void validateOrderStatus(String orderStatus) {
