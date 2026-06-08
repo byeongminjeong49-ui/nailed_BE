@@ -12,9 +12,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -120,8 +117,8 @@ public class OrderService {
     }
 
     private String generateOrderId() {
-        return "ORD-" + LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"))
-               + "-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        long next = orderRepository.count() + 1;
+        return String.format("ORDER_%03d", next);
     }
 
     private void validateOrderStatus(String orderStatus) {
