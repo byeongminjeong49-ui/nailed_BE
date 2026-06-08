@@ -11,9 +11,8 @@ import com.nailed.web.product.dto.ProductResponse;
 import com.nailed.web.product.entity.ProductGroup;
 import com.nailed.web.product.repository.ProductGroupRepository;
 import com.nailed.web.product.service.ProductService;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -198,24 +197,14 @@ public class ProductController {
     @PostMapping("/{productId}/view")
     public ResponseEntity<ApiResponse<Void>> increaseViewCount(
             @PathVariable Long productId,
-            HttpServletRequest request,
-            HttpServletResponse response) {
+            HttpServletRequest request) {
 
-        String cookieName = "viewed_" + productId;
+        HttpSession session = request.getSession();
+        String key = "viewed_" + productId;
 
-        // 이미 조회한 상품이면 카운트 증가 안 함
-        boolean alreadyViewed = request.getCookies() != null
-                && Arrays.stream(request.getCookies())
-                         .anyMatch(c -> cookieName.equals(c.getName()));
-
-        if (!alreadyViewed) {
+        if (session.getAttribute(key) == null) {
             productService.increaseViewCount(productId);
-
-            // 세션 쿠키 설정 (브라우저 닫으면 만료 → 재방문 시 재집계)
-            Cookie cookie = new Cookie(cookieName, "1");
-            cookie.setPath("/");
-            cookie.setHttpOnly(true);
-            response.addCookie(cookie);
+            session.setAttribute(key, true);
         }
 
         return ResponseEntity.ok(ApiResponse.success());
