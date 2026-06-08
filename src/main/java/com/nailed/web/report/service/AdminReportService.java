@@ -13,6 +13,7 @@ import com.nailed.web.report.dto.AdminReportResponse;
 import com.nailed.web.report.entity.Report;
 import com.nailed.web.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,7 +41,7 @@ public class AdminReportService {
             Pageable pageable) {
         validateTargetType(targetType);
 
-        var page = reportRepository.searchAdminReports(
+        Page<Report> page = reportRepository.searchAdminReports(
                 blankToNull(keyword),
                 parseReason(reasonCode),
                 parseStatus(status),
@@ -49,7 +50,7 @@ public class AdminReportService {
                 pageable
         );
 
-        return PageResponse.of(page.map(this::toSummary));
+        return PageResponse.of(page.map(report -> toSummary(report)));
     }
 
     @Transactional
@@ -127,6 +128,8 @@ public class AdminReportService {
         }
     }
 
+    // 현재 회원 신고(MEMBER)만 지원 → MEMBER 외 값 차단, null이면 전체 조회
+    // targetType 실제 DB 필터링은 미구현 (향후 상품 신고 기능 추가 시 쿼리에 반영 예정)
     private void validateTargetType(String targetType) {
         String value = blankToNull(targetType);
         if (value == null) {

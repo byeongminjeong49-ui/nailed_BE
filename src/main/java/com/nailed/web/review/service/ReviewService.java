@@ -7,6 +7,7 @@ import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.product.entity.Product;
 import com.nailed.web.product.entity.ProductImage;
 import com.nailed.web.product.repository.ProductImageRepository;
 import com.nailed.web.product.repository.ProductRepository;
@@ -20,7 +21,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +46,6 @@ public class ReviewService {
      */
     @Transactional
     public ReviewResponse.Detail write(String buyerId, ReviewRequest.Write req) {
-        // 리뷰 가능 여부 검증 (배송 완료 주문 + 해당 구매자 본인 + 중복 방지)
         Order order = orderRepository.findById(req.orderId())
                 .orElseThrow(() -> new CustomException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -65,6 +69,7 @@ public class ReviewService {
                 .content(req.content())
                 .build();
 
+        // write는 단건이므로 단건 변환 메서드 사용
         return toDetail(reviewRepository.save(review));
     }
 
@@ -74,7 +79,6 @@ public class ReviewService {
      * - 비로그인 사용자도 조회 가능
      */
     public ReviewResponse.SellerReviews getSellerReviews(String sellerId, Pageable pageable) {
-        // 판매자 존재 확인
         if (!memberRepository.existsById(sellerId)) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
@@ -83,16 +87,35 @@ public class ReviewService {
                 .findAverageRatingBySellerId(sellerId)
                 .orElse(null);
 
-        Page<ReviewResponse.Detail> reviewPage = reviewRepository
-                .findByOrderSellerIdOrderByCreatedAtDesc(sellerId, pageable)
-                .map(this::toDetail);
+        Page<Review> page = reviewRepository
+                .findByOrderSellerIdOrderByCreatedAtDesc(sellerId, pageable);
 
-        return new ReviewResponse.SellerReviews(averageRating, PageResponse.of(reviewPage));
+        // 상품 ID 일괄 수집 → 상품 정보 + 썸네일 배치 조회 (N+1 방지)
+        List<Long> productIds = new ArrayList<>();
+        for (Review r : page.getContent()) {
+            if (r.getOrder().getProductId() != null) {
+                productIds.add(r.getOrder().getProductId());
+            }
+        }
+
+        Map<Long, Product> productMap = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            List<Product> products = productRepository.findAllById(productIds);
+            for (Product p : products) {
+                productMap.put(p.getProductId(), p);
+            }
+        }
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+
+        Page<ReviewResponse.Detail> detailPage = page.map(r ->
+                toDetail(r, productMap, thumbnailMap));
+
+        return new ReviewResponse.SellerReviews(averageRating, PageResponse.of(detailPage));
     }
 
     /**
-     * Review 엔티티 → Detail DTO 변환
-     * - 주문의 productId로 상품명, 대표 이미지, 가격 조회
+     * Review → Detail DTO 변환 (단건용, write 직후 호출)
+     * - 상품 1개만 조회하므로 배치 없이 직접 조회
      */
     private ReviewResponse.Detail toDetail(Review review) {
         Long productId = review.getOrder().getProductId();
@@ -102,15 +125,13 @@ public class ReviewService {
         String productImageUrl = null;
 
         if (productId != null) {
-            // 상품명, 가격 조회
-            var productOpt = productRepository.findById(productId);
+            Optional<Product> productOpt = productRepository.findById(productId);
             if (productOpt.isPresent()) {
-                var product = productOpt.get();
+                Product product = productOpt.get();
                 productTitle = product.getTitle();
                 price = Long.valueOf(product.getPrice());
             }
 
-            // 대표 이미지(sort_order=0) 조회
             List<ProductImage> images = productImageRepository
                     .findThumbnailsByProductIds(List.of(productId));
             if (!images.isEmpty()) {
@@ -129,5 +150,55 @@ public class ReviewService {
                 productImageUrl,
                 price
         );
+    }
+
+    /**
+     * Review → Detail DTO 변환 (배치용, 미리 조회한 맵 활용)
+     * - getSellerReviews에서 페이지 전체를 한 번에 변환할 때 사용
+     * - 상품 조회가 맵 참조로 대체되므로 N+1 쿼리 없음
+     */
+    private ReviewResponse.Detail toDetail(Review review,
+                                            Map<Long, Product> productMap,
+                                            Map<Long, String> thumbnailMap) {
+        Long productId = review.getOrder().getProductId();
+
+        String productTitle = null;
+        Long price = null;
+        String productImageUrl = null;
+
+        if (productId != null) {
+            Product product = productMap.get(productId);
+            if (product != null) {
+                productTitle = product.getTitle();
+                price = Long.valueOf(product.getPrice());
+            }
+            productImageUrl = thumbnailMap.get(productId);
+        }
+
+        return new ReviewResponse.Detail(
+                review.getReviewId(),
+                review.getOrder().getOrderId(),
+                review.getBuyer().getNickname(),
+                review.getRating(),
+                review.getContent(),
+                review.getCreatedAt(),
+                productTitle,
+                productImageUrl,
+                price
+        );
+    }
+
+    /** 썸네일 배치 조회 (productId → imageUrl 맵 반환) */
+    private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
+        if (productIds.isEmpty()) return Map.of();
+        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
+        Map<Long, String> map = new HashMap<>();
+        for (ProductImage img : thumbnails) {
+            Long pid = img.getProduct().getProductId();
+            if (!map.containsKey(pid)) {
+                map.put(pid, img.getImageUrl());
+            }
+        }
+        return map;
     }
 }

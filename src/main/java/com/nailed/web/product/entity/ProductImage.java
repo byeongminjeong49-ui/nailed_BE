@@ -27,7 +27,7 @@ public class ProductImage extends CreatedOnlyEntity {
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    // Tomcat 로컬 저장 기준 이미지 상대 경로 (예: /uploads/uuid.jpg)
+    // 저장된 이미지 경로 (예: /images/products/PRD_001_1.jpg)
     @Column(name = "image_url", length = 500, nullable = false)
     private String imageUrl;
 

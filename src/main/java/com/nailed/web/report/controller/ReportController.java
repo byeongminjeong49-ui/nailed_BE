@@ -1,14 +1,15 @@
 package com.nailed.web.report.controller;
 
 import com.nailed.common.response.ApiResponse;
+import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.SecurityUtil;
 import com.nailed.web.report.dto.ReportRequest;
 import com.nailed.web.report.dto.ReportResponse;
 import com.nailed.web.report.service.ReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,12 +29,9 @@ public class ReportController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<Page<ReportResponse.Summary>>> getMyReports(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+    public ResponseEntity<ApiResponse<PageResponse<ReportResponse.Summary>>> getMyReports(
+            @PageableDefault(size = 10) Pageable pageable) {
         String memberId = SecurityUtil.getCurrentMemberId();
-        Page<ReportResponse.Summary> result = reportService.getMyReports(
-                memberId, PageRequest.of(page, size));
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(ApiResponse.success(reportService.getMyReports(memberId, pageable)));
     }
 }

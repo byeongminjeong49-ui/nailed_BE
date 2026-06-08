@@ -46,11 +46,11 @@ public class Report extends CreatedOnlyEntity {
     @JoinColumn(name = "target_member_id", nullable = false)
     private Member targetMember;
 
-    // 처리 상태 (APPROVED / REJECTED / DONE)
+    // 처리 상태 (APPROVED=접수대기 / REJECTED=반려 / DONE=처리완료)
     @Enumerated(EnumType.STRING)
     @Column(name = "report_status", length = 20, nullable = false)
     @Builder.Default
-    private ReportStatus reportStatus = ReportStatus.APPROVED;
+    private ReportStatus reportStatus = ReportStatus.APPROVED; // 신고 접수됨(처리 대기 중)
 
     // 관리자 처리 사유
     @Column(name = "processed_reason", length = 500)

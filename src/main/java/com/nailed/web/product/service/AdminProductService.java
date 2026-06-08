@@ -11,14 +11,15 @@ import com.nailed.web.product.entity.ProductImage;
 import com.nailed.web.product.repository.ProductImageRepository;
 import com.nailed.web.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -37,7 +38,7 @@ public class AdminProductService {
             String brandName,
             String sellerKeyword,
             Pageable pageable) {
-        var page = productRepository.searchAdminProducts(
+        Page<Product> page = productRepository.searchAdminProducts(
                 blankToNull(keyword),
                 parseProductStatus(productStatus),
                 categoryId,
@@ -47,8 +48,11 @@ public class AdminProductService {
                 blankToNull(sellerKeyword),
                 pageable
         );
-        Map<Long, String> thumbnailMap = buildThumbnailMap(
-                page.getContent().stream().map(Product::getProductId).toList());
+        List<Long> productIds = new ArrayList<>();
+        for (Product product : page.getContent()) {
+            productIds.add(product.getProductId());
+        }
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
 
         return PageResponse.of(page.map(product ->
                 toSummary(product, thumbnailMap.get(product.getProductId()))));
@@ -63,12 +67,8 @@ public class AdminProductService {
             throw new CustomException(ErrorCode.PRODUCT_DELETED);
         }
 
-        String trimmedReason = blankToNull(reason);
-        if (trimmedReason == null || trimmedReason.length() > 500) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        product.delete(trimmedReason);
+        // @NotBlank + @Size(max=500)이 Controller @Valid 단계에서 이미 검증 → 별도 체크 불필요
+        product.delete(blankToNull(reason));
     }
 
     private AdminProductResponse.Summary toSummary(Product product, String thumbnailUrl) {
@@ -106,16 +106,16 @@ public class AdminProductService {
     }
 
     private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
-        if (productIds.isEmpty()) {
-            return Map.of();
+        if (productIds.isEmpty()) return Map.of();
+        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
+        Map<Long, String> map = new HashMap<>();
+        for (ProductImage img : thumbnails) {
+            Long pid = img.getProduct().getProductId();
+            if (!map.containsKey(pid)) {
+                map.put(pid, img.getImageUrl());
+            }
         }
-        return productImageRepository.findThumbnailsByProductIds(productIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        image -> image.getProduct().getProductId(),
-                        ProductImage::getImageUrl,
-                        (existing, replacement) -> existing
-                ));
+        return map;
     }
 
     private String buildCategoryPath(ProductGroup category) {

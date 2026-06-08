@@ -3,6 +3,8 @@ package com.nailed.web.product.controller;
 import com.nailed.common.enums.GroupType;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.SizeCode;
+import com.nailed.common.exception.CustomException;
+import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.SecurityUtil;
@@ -22,9 +24,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/products")
@@ -45,32 +46,34 @@ public class ProductController {
         List<ProductGroup> groups =
                 productGroupRepository.findByGroupTypeWithParent(GroupType.CATEGORY);
 
-        List<CategoryDto> result = groups.stream()
-                .map(g -> new CategoryDto(
-                        g.getGroupId(),
-                        g.getCode(),
-                        g.getName(),
-                        g.getParent() != null ? g.getParent().getCode() : null,
-                        g.getSizeType()
-                ))
-                .collect(Collectors.toList());
-
+        List<CategoryDto> result = new ArrayList<>();
+        for (ProductGroup g : groups) {
+            result.add(new CategoryDto(
+                    g.getGroupId(),
+                    g.getCode(),
+                    g.getName(),
+                    g.getParent() != null ? g.getParent().getCode() : null,
+                    g.getSizeType()
+            ));
+        }
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
     @GetMapping("/conditions")
     public ResponseEntity<ApiResponse<List<ConditionDto>>> getConditions() {
-        List<ConditionDto> list = Arrays.stream(ProductCondition.values())
-                .map(c -> new ConditionDto(c.name(), c.getLabel()))
-                .toList();
+        List<ConditionDto> list = new ArrayList<>();
+        for (ProductCondition c : ProductCondition.values()) {
+            list.add(new ConditionDto(c.name(), c.getLabel()));
+        }
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     @GetMapping("/sizes")
     public ResponseEntity<ApiResponse<List<SizeDto>>> getSizes() {
-        List<SizeDto> list = Arrays.stream(SizeCode.values())
-                .map(s -> new SizeDto(s.getValue(), s.getSizeType().name()))
-                .toList();
+        List<SizeDto> list = new ArrayList<>();
+        for (SizeCode s : SizeCode.values()) {
+            list.add(new SizeDto(s.getValue(), s.getSizeType().name()));
+        }
         return ResponseEntity.ok(ApiResponse.success(list));
     }
 
@@ -81,16 +84,16 @@ public class ProductController {
         List<ProductGroup> groups =
                 productGroupRepository.findBrandsIncludingLuxury();
 
-        List<CategoryDto> result = groups.stream()
-                .map(g -> new CategoryDto(
-                        g.getGroupId(),
-                        g.getCode(),
-                        g.getName(),
-                        g.getParent() != null ? g.getParent().getCode() : null,
-                        g.getSizeType()
-                ))
-                .collect(Collectors.toList());
-
+        List<CategoryDto> result = new ArrayList<>();
+        for (ProductGroup g : groups) {
+            result.add(new CategoryDto(
+                    g.getGroupId(),
+                    g.getCode(),
+                    g.getName(),
+                    g.getParent() != null ? g.getParent().getCode() : null,
+                    g.getSizeType()
+            ));
+        }
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 
@@ -134,8 +137,7 @@ public class ProductController {
                     categoryCode, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
         }
         if (categoryId == null) {
-            throw new com.nailed.common.exception.CustomException(
-                    com.nailed.common.exception.ErrorCode.INVALID_INPUT_VALUE);
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
         return ResponseEntity.ok(ApiResponse.success(productService.getList(
                 categoryId, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
@@ -148,7 +150,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(productService.getNewProducts()));
     }
 
-    // ── 홈 인기 TOP 10 (비로그인 가능) ───────────────────────
+    // ── 홈 인기 TOP 5 (비로그인 가능) ────────────────────────
 
     @GetMapping("/popular")
     public ResponseEntity<ApiResponse<List<ProductResponse.Summary>>> getPopularProducts() {

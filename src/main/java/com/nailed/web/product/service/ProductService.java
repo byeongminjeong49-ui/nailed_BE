@@ -1,6 +1,5 @@
 package com.nailed.web.product.service;
 
-import com.nailed.common.enums.OrderStatus;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.ProductStatus;
 import com.nailed.common.enums.SizeCode;
@@ -39,11 +38,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -142,12 +141,11 @@ public class ProductService {
     public ProductResponse.Detail getDetail(Long productId, String memberId) {
         Product product = findActiveProduct(productId);
 
-        // 이미지 목록 (sort_order 순)
-        List<String> imageUrls = productImageRepository
-                .findByProductProductIdOrderBySortOrderAsc(productId)
-                .stream()
-                .map(ProductImage::getImageUrl)
-                .toList();
+        List<ProductImage> imgList = productImageRepository.findByProductProductIdOrderBySortOrderAsc(productId);
+        List<String> imageUrls = new ArrayList<>();
+        for (ProductImage img : imgList) {
+            imageUrls.add(img.getImageUrl());
+        }
 
         // 판매자 프로필 카드 구성
         ProductResponse.SellerInfo sellerInfo = buildSellerInfo(product.getSeller());
@@ -233,11 +231,14 @@ public class ProductService {
                     ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
                     normalizedKeyword, minPrice, maxPrice, condition, productSize, unsorted);
         } else {
-            Sort sort = switch (sortBy) {
-                case "price_asc"  -> Sort.by("price").ascending();
-                case "price_desc" -> Sort.by("price").descending();
-                default           -> Sort.by("createdAt").descending();
-            };
+            Sort sort;
+            if ("price_asc".equals(sortBy)) {
+                sort = Sort.by("price").ascending();
+            } else if ("price_desc".equals(sortBy)) {
+                sort = Sort.by("price").descending();
+            } else {
+                sort = Sort.by("createdAt").descending();
+            }
             Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
             page = productRepository.search(
                     ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
@@ -261,11 +262,14 @@ public class ProductService {
                     genderCodePrefix, minPrice, maxPrice, condition, productSize, unsorted);
         }
 
-        Sort sort = switch (sortBy) {
-            case "price_asc" -> Sort.by("price").ascending();
-            case "price_desc" -> Sort.by("price").descending();
-            default -> Sort.by("createdAt").descending();
-        };
+        Sort sort;
+        if ("price_asc".equals(sortBy)) {
+            sort = Sort.by("price").ascending();
+        } else if ("price_desc".equals(sortBy)) {
+            sort = Sort.by("price").descending();
+        } else {
+            sort = Sort.by("createdAt").descending();
+        }
         Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
         return productRepository.findCategoryProducts(
                 ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
@@ -286,11 +290,14 @@ public class ProductService {
         if (gender == null || gender.isBlank()) {
             return null;
         }
-        return switch (gender.trim().toUpperCase()) {
-            case "MENS", "MEN", "MALE" -> MENS_CATEGORY_CODE;
-            case "WOMENS", "WOMEN", "FEMALE" -> WOMENS_CATEGORY_CODE;
-            default -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        };
+        String g = gender.trim().toUpperCase();
+        if ("MENS".equals(g) || "MEN".equals(g) || "MALE".equals(g)) {
+            return MENS_CATEGORY_CODE;
+        } else if ("WOMENS".equals(g) || "WOMEN".equals(g) || "FEMALE".equals(g)) {
+            return WOMENS_CATEGORY_CODE;
+        } else {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
     }
 
     // ── 판매자의 다른 상품 최대 5개 ──────────────────────────
@@ -319,10 +326,10 @@ public class ProductService {
         return toSummaryList(products);
     }
 
-    // ── 홈 인기 TOP 10 ────────────────────────────────────────
+    // ── 홈 인기 TOP 5 ─────────────────────────────────────────
 
     public List<ProductResponse.Summary> getPopularProducts() {
-        List<Product> products = productRepository.findPopularTop10(ProductStatus.ON_SALE.name());
+        List<Product> products = productRepository.findPopularTop5(ProductStatus.ON_SALE.name());
         return toSummaryList(products);
     }
 
@@ -330,7 +337,8 @@ public class ProductService {
 
     public List<ProductResponse.Summary> getRandomProducts(int size) {
         List<Product> products = productRepository.findRandomProducts();
-        return toSummaryList(products.stream().limit(size).toList());
+        List<Product> sliced = products.size() > size ? products.subList(0, size) : products;
+        return toSummaryList(sliced);
     }
 
     // ── 상품 수정 ─────────────────────────────────────────────
@@ -389,10 +397,12 @@ public class ProductService {
             return;
         }
 
-        switch (newStatus) {
-            case ON_SALE -> product.restore();
-            case SOLD    -> product.completeSale();
-            default      -> throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        if (newStatus == ProductStatus.ON_SALE) {
+            product.restore();
+        } else if (newStatus == ProductStatus.SOLD) {
+            product.completeSale();
+        } else {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
     }
 
@@ -457,9 +467,11 @@ public class ProductService {
         Double avgRating = reviewRepository
                 .findAverageRatingBySellerId(seller.getMemberId())
                 .orElse(null);
-        String profileImageUrl = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId())
-                .filter(url -> !url.isBlank())
-                .orElse(null);
+        Optional<String> profileImageOpt = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId());
+        String profileImageUrl = null;
+        if (profileImageOpt.isPresent() && !profileImageOpt.get().isBlank()) {
+            profileImageUrl = profileImageOpt.get();
+        }
 
         return new ProductResponse.SellerInfo(
                 seller.getMemberId(),
@@ -501,17 +513,19 @@ public class ProductService {
      * 기존 이미지의 max 순번 다음부터 이어서 채번
      */
     private List<String> renameNewUploads(List<String> imageUrls, Long productId) {
-        int maxIndex = productImageRepository
-                .findByProductProductIdOrderBySortOrderAsc(productId)
-                .stream()
-                .filter(img -> img.getImageUrl().startsWith("/images/products/"))
-                .mapToInt(img -> {
-                    String name = img.getImageUrl().substring(img.getImageUrl().lastIndexOf('/') + 1);
-                    String[] parts = name.split("[_.]");
-                    try { return Integer.parseInt(parts[parts.length - 2]); } catch (Exception e) { return 0; }
-                })
-                .max()
-                .orElse(0);
+        List<ProductImage> existingImages = productImageRepository.findByProductProductIdOrderBySortOrderAsc(productId);
+        int maxIndex = 0;
+        for (ProductImage img : existingImages) {
+            if (!img.getImageUrl().startsWith("/images/products/")) continue;
+            String name = img.getImageUrl().substring(img.getImageUrl().lastIndexOf('/') + 1);
+            String[] parts = name.split("[_.]");
+            try {
+                int idx = Integer.parseInt(parts[parts.length - 2]);
+                if (idx > maxIndex) maxIndex = idx;
+            } catch (Exception e) {
+                // ignore malformed filename
+            }
+        }
 
         List<String> result = new ArrayList<>();
         int newIdx = 0;
@@ -552,61 +566,43 @@ public class ProductService {
     }
 
     private void syncImages(Product product, List<String> newUrls) {
-        List<ProductImage> currentImages = product.getImages();
-
-        // 새 목록에 없는 이미지 삭제 (orphanRemoval이 DB DELETE 처리)
-        currentImages.removeIf(img -> !newUrls.contains(img.getImageUrl()));
-
-        // 기존에 남아있는 이미지 URL 세트
-        Set<String> existingUrls = currentImages.stream()
-                .map(ProductImage::getImageUrl)
-                .collect(Collectors.toSet());
-
-        // 새로 추가된 이미지만 INSERT (최종 순서 기준으로 sort_order 설정)
-        List<ProductImage> toAdd = new ArrayList<>();
-        for (String url : newUrls) {
-            if (!existingUrls.contains(url)) {
-                toAdd.add(ProductImage.builder()
-                        .product(product)
-                        .imageUrl(url)
-                        .sortOrder(newUrls.indexOf(url))
-                        .build());
-            }
-        }
-        productImageRepository.saveAll(toAdd);
-
-        // 기존 이미지 sort_order 갱신 (순서 변경 반영)
-        for (ProductImage img : currentImages) {
-            img.updateSortOrder(newUrls.indexOf(img.getImageUrl()));
-        }
+        product.getImages().clear(); // orphanRemoval이 기존 이미지 전체 DELETE 처리
+        saveImages(product, newUrls);
     }
 
-    /** 상품 ID 목록 → 대표 이미지(sort_order=0) 맵 (N+1 방지 배치 조회) */
     private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
         if (productIds.isEmpty()) return Map.of();
-        return productImageRepository.findThumbnailsByProductIds(productIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        img -> img.getProduct().getProductId(),
-                        ProductImage::getImageUrl,
-                        (existing, replacement) -> existing  // 중복 시 먼저 조회된 값 유지
-                ));
+        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
+        Map<Long, String> map = new HashMap<>();
+        for (ProductImage img : thumbnails) {
+            Long pid = img.getProduct().getProductId();
+            if (!map.containsKey(pid)) {
+                map.put(pid, img.getImageUrl());
+            }
+        }
+        return map;
     }
 
-    /** Page<Product> → PageResponse<Summary> */
     private PageResponse<ProductResponse.Summary> toSummaryPage(Page<Product> page) {
-        Map<Long, String> thumbnailMap = buildThumbnailMap(
-                page.getContent().stream().map(Product::getProductId).toList());
+        List<Long> productIds = new ArrayList<>();
+        for (Product p : page.getContent()) {
+            productIds.add(p.getProductId());
+        }
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
         return PageResponse.of(page.map(p ->
                 ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId()))));
     }
 
-    /** List<Product> → List<Summary> (홈 화면용) */
     private List<ProductResponse.Summary> toSummaryList(List<Product> products) {
-        Map<Long, String> thumbnailMap = buildThumbnailMap(
-                products.stream().map(Product::getProductId).toList());
-        return products.stream()
-                .map(p -> ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId())))
-                .toList();
+        List<Long> productIds = new ArrayList<>();
+        for (Product p : products) {
+            productIds.add(p.getProductId());
+        }
+        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+        List<ProductResponse.Summary> result = new ArrayList<>();
+        for (Product p : products) {
+            result.add(ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId())));
+        }
+        return result;
     }
 }

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * IA 화면 매핑:
  *   - nld-403 상품 상세  → 찜 버튼   : POST/DELETE /api/products/{productId}/wishlist
- *   - nld-904 찜 목록   → 목록 조회 : GET    /api/members/me/wishlist
+ *   - nld-904 찜 목록   → 목록 조회 : GET    /api/members/mypage/wishlist
  *
  * 모든 엔드포인트 로그인 필요 (SecurityUtil.getCurrentMemberId 호출 시 UNAUTHORIZED)
  */

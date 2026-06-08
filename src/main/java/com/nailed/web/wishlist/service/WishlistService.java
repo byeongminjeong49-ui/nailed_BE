@@ -19,9 +19,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -93,10 +94,10 @@ public class WishlistService {
         Page<Wishlist> page = wishlistRepository
                 .findMyWishlist(memberId, ProductStatus.DELETED, pageable);
 
-        // 찜 목록에서 바로 상품 ID만 추출하여 썸네일 맵 구성
-        List<Long> productIds = page.getContent().stream()
-                .map(w -> w.getProduct().getProductId())
-                .toList();
+        List<Long> productIds = new ArrayList<>();
+        for (Wishlist w : page.getContent()) {
+            productIds.add(w.getProduct().getProductId());
+        }
         Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
 
         return PageResponse.of(page.map(w ->
@@ -118,15 +119,16 @@ public class WishlistService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    /** 상품 ID 목록 → 대표 이미지(sort_order=0) 맵 (ProductService 와 동일 패턴) */
     private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
         if (productIds.isEmpty()) return Map.of();
-        return productImageRepository.findThumbnailsByProductIds(productIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        img -> img.getProduct().getProductId(),
-                        ProductImage::getImageUrl,
-                        (existing, replacement) -> existing
-                ));
+        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
+        Map<Long, String> map = new HashMap<>();
+        for (ProductImage img : thumbnails) {
+            Long pid = img.getProduct().getProductId();
+            if (!map.containsKey(pid)) {
+                map.put(pid, img.getImageUrl());
+            }
+        }
+        return map;
     }
 }

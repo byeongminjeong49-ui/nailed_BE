@@ -2,6 +2,7 @@ package com.nailed.web.report.service;
 import com.nailed.common.enums.ReportReason;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
+import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.EnumUtil;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
@@ -10,7 +11,6 @@ import com.nailed.web.report.dto.ReportResponse;
 import com.nailed.web.report.entity.Report;
 import com.nailed.web.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,10 +44,12 @@ public class ReportService {
         return ReportResponse.Detail.from(reportRepository.save(report));
     }
 
-    public Page<ReportResponse.Summary> getMyReports(String memberId, Pageable pageable) {
-        return reportRepository
-                .findByReporter_MemberIdOrderByCreatedAtDesc(memberId, pageable)
-                .map(ReportResponse.Summary::from);
+    public PageResponse<ReportResponse.Summary> getMyReports(String memberId, Pageable pageable) {
+        return PageResponse.of(
+                reportRepository
+                        .findByReporter_MemberIdOrderByCreatedAtDesc(memberId, pageable)
+                        .map(report -> ReportResponse.Summary.from(report))
+        );
     }
 
     private Member findMember(String memberId) {

@@ -20,35 +20,15 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(report_id, 5) AS UNSIGNED)), 0) " +
                    "FROM reports WHERE report_id REGEXP '^RPT_[0-9]+$'", nativeQuery = true)
     Optional<Integer> findMaxSequentialNumber();
-    @Query(value = """
+    @Query("""
             SELECT r FROM Report r
-            JOIN FETCH r.reporter reporter
-            JOIN FETCH r.targetMember target
             WHERE (:keyword IS NULL
                 OR LOWER(r.reportId) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(reporter.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(reporter.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.memberId) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(CAST(r.reasonCode AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(r.detail) LIKE LOWER(CONCAT('%', :keyword, '%')))
-              AND (:reasonCode IS NULL OR r.reasonCode = :reasonCode)
-              AND (:status IS NULL OR r.reportStatus = :status)
-              AND (:dateFrom IS NULL OR r.createdAt >= :dateFrom)
-              AND (:dateTo IS NULL OR r.createdAt <= :dateTo)
-            """,
-           countQuery = """
-            SELECT COUNT(r) FROM Report r
-            JOIN r.reporter reporter
-            JOIN r.targetMember target
-            WHERE (:keyword IS NULL
-                OR LOWER(r.reportId) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(reporter.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(reporter.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.memberId) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
-                OR LOWER(target.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.reporter.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.reporter.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.memberId) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(CAST(r.reasonCode AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.detail) LIKE LOWER(CONCAT('%', :keyword, '%')))
               AND (:reasonCode IS NULL OR r.reasonCode = :reasonCode)
