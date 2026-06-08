@@ -17,7 +17,7 @@ public interface ProductGroupRepository extends JpaRepository<ProductGroup, Long
     boolean existsByCode(String code);
 
     // 카테고리 목록 + parent 함께 조회 (LazyInitializationException 방지)
-    @Query("SELECT g FROM ProductGroup g LEFT JOIN FETCH g.parent WHERE g.groupType = :groupType")
+    @Query("SELECT g FROM ProductGroup g LEFT JOIN FETCH g.parent WHERE g.groupType = :groupType ORDER BY g.sortOrder ASC")
     List<ProductGroup> findByGroupTypeWithParent(@Param("groupType") GroupType groupType);
 
     // 브랜드 + 럭셔리 서브카테고리 함께 조회 (브랜드 드롭다운용)

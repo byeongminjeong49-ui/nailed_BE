@@ -41,6 +41,12 @@ public class ProductGroup {
     @Column(name = "name", length = 100, nullable = false)
     private String name;
 
+    @Column(name = "sort_order")
+    private Integer sortOrder;
+
+    @Column(name = "size_type", length = 20)
+    private String sizeType;
+
     // ── 비즈니스 메서드 ──────────────────────────────
 
     public boolean isCategory() {

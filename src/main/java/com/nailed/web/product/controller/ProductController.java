@@ -1,6 +1,8 @@
 package com.nailed.web.product.controller;
 
 import com.nailed.common.enums.GroupType;
+import com.nailed.common.enums.ProductCondition;
+import com.nailed.common.enums.SizeCode;
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.SecurityUtil;
@@ -35,7 +37,9 @@ public class ProductController {
 
     // ── 카테고리 목록 (비로그인 가능) ────────────────────────
 
-    public record CategoryDto(Long groupId, String code, String name, String parentCode) {}
+    public record CategoryDto(Long groupId, String code, String name, String parentCode, String sizeType) {}
+    public record ConditionDto(String code, String label) {}
+    public record SizeDto(String value, String sizeType) {}
 
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<CategoryDto>>> getCategories() {
@@ -47,11 +51,28 @@ public class ProductController {
                         g.getGroupId(),
                         g.getCode(),
                         g.getName(),
-                        g.getParent() != null ? g.getParent().getCode() : null
+                        g.getParent() != null ? g.getParent().getCode() : null,
+                        g.getSizeType()
                 ))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/conditions")
+    public ResponseEntity<ApiResponse<List<ConditionDto>>> getConditions() {
+        List<ConditionDto> list = Arrays.stream(ProductCondition.values())
+                .map(c -> new ConditionDto(c.name(), c.getLabel()))
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success(list));
+    }
+
+    @GetMapping("/sizes")
+    public ResponseEntity<ApiResponse<List<SizeDto>>> getSizes() {
+        List<SizeDto> list = Arrays.stream(SizeCode.values())
+                .map(s -> new SizeDto(s.getValue(), s.getSizeType().name()))
+                .toList();
+        return ResponseEntity.ok(ApiResponse.success(list));
     }
 
     // ── 브랜드 목록 (비로그인 가능) ──────────────────────────
@@ -66,7 +87,8 @@ public class ProductController {
                         g.getGroupId(),
                         g.getCode(),
                         g.getName(),
-                        g.getParent() != null ? g.getParent().getCode() : null
+                        g.getParent() != null ? g.getParent().getCode() : null,
+                        g.getSizeType()
                 ))
                 .collect(Collectors.toList());
 
