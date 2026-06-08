@@ -22,7 +22,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,8 +45,7 @@ public class MemberService {
                 """, memberId);
         long soldProductCount = count("""
                 SELECT COUNT(*) FROM orders
-                WHERE seller_id = :memberId
-                  AND order_status IN ('DELIVERED')
+                WHERE seller_id = :memberId AND order_status IN ('DELIVERED')
                 """, memberId);
         long wishlistCount = count("""
                 SELECT COUNT(*) FROM wishlists
@@ -63,18 +61,13 @@ public class MemberService {
                 """, memberId);
 
         return new MemberResponse.Home(
-                profile,
-                sellingProductCount,
-                soldProductCount,
-                wishlistCount,
-                buyingOrderCount,
-                sellingOrderCount
+                profile, sellingProductCount, soldProductCount,
+                wishlistCount, buyingOrderCount, sellingOrderCount
         );
     }
 
     public MemberResponse.Profile getProfile(String memberId) {
-        Object[] row = findMemberProfileRow(memberId);
-        return toProfile(row);
+        return toProfile(findMemberProfileRow(memberId));
     }
 
     @Transactional
@@ -109,19 +102,13 @@ public class MemberService {
     public PageResponse<MemberResponse.ProductSummary> getMyProducts(String memberId, String status, Pageable pageable) {
         ensureMemberExists(memberId);
 
-        String statusCondition = "";
-        if (status != null && !status.isBlank()) {
-            statusCondition = " AND p.product_status = :status";
-        }
+        String statusCondition = (status != null && !status.isBlank()) ? " AND p.product_status = :status" : "";
 
         String baseSql = """
                 FROM products p
-                LEFT JOIN product_groups cg
-                    ON cg.group_id = p.category_id
-                LEFT JOIN product_groups bg
-                    ON bg.group_id = p.brand_id
-                LEFT JOIN product_images pi
-                    ON pi.product_id = p.product_id AND pi.sort_order = 0
+                LEFT JOIN product_groups cg ON cg.group_id = p.category_id
+                LEFT JOIN product_groups bg ON bg.group_id = p.brand_id
+                LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.sort_order = 0
                 WHERE p.seller_id = :memberId
                   AND p.product_status <> 'DELETED'
                 """ + statusCondition;
@@ -129,19 +116,14 @@ public class MemberService {
         Query dataQuery = entityManager.createNativeQuery("""
                 SELECT p.product_id, p.title, p.price, p.condition_code, p.product_status,
                        (
-                           SELECT o.order_status
-                           FROM orders o
-                           WHERE o.product_id = p.product_id
-                             AND o.seller_id = :memberId
+                           SELECT o.order_status FROM orders o
+                           WHERE o.product_id = p.product_id AND o.seller_id = :memberId
                              AND o.order_status IN ('SHIPPING', 'DELIVERED')
-                           ORDER BY FIELD(o.order_status, 'DELIVERED', 'SHIPPING')
-                           LIMIT 1
+                           ORDER BY FIELD(o.order_status, 'DELIVERED', 'SHIPPING') LIMIT 1
                        ) AS order_status,
                        EXISTS (
-                           SELECT 1
-                           FROM orders o
-                           WHERE o.product_id = p.product_id
-                             AND o.seller_id = :memberId
+                           SELECT 1 FROM orders o
+                           WHERE o.product_id = p.product_id AND o.seller_id = :memberId
                              AND o.order_status IN ('SHIPPING', 'DELIVERED')
                        ) AS is_sold,
                        p.view_count, p.wishlist_count, pi.image_url, p.size, cg.code, bg.name, p.created_at
@@ -153,8 +135,7 @@ public class MemberService {
         applyPage(dataQuery, pageable);
 
         List<MemberResponse.ProductSummary> content = rows(dataQuery).stream()
-                .map(this::toProductSummary)
-                .toList();
+                .map(this::toProductSummary).toList();
         return PageResponse.of(new PageImpl<>(content, pageable, number(countQuery.getSingleResult()).longValue()));
     }
 
@@ -162,17 +143,12 @@ public class MemberService {
             String memberId, String type, String status, Pageable pageable) {
         ensureMemberExists(memberId);
 
-        boolean selling = "SELL".equalsIgnoreCase(type);
-        String ownerColumn = selling ? "o.seller_id" : "o.buyer_id";
-        String statusCondition = "";
-        if (status != null && !status.isBlank()) {
-            statusCondition = " AND o.order_status = :status";
-        }
+        String ownerColumn = "SELL".equalsIgnoreCase(type) ? "o.seller_id" : "o.buyer_id";
+        String statusCondition = (status != null && !status.isBlank()) ? " AND o.order_status = :status" : "";
 
         String baseSql = "FROM orders o "
                 + "JOIN products p ON p.product_id = o.product_id "
-                + "LEFT JOIN product_images pi "
-                + "    ON pi.product_id = p.product_id AND pi.sort_order = 0 "
+                + "LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.sort_order = 0 "
                 + "WHERE " + ownerColumn + " = :memberId" + statusCondition;
 
         Query dataQuery = entityManager.createNativeQuery(
@@ -189,8 +165,7 @@ public class MemberService {
         applyPage(dataQuery, pageable);
 
         List<MemberResponse.OrderSummary> content = rows(dataQuery).stream()
-                .map(this::toOrderSummary)
-                .toList();
+                .map(this::toOrderSummary).toList();
         return PageResponse.of(new PageImpl<>(content, pageable, number(countQuery.getSingleResult()).longValue()));
     }
 
@@ -198,16 +173,12 @@ public class MemberService {
             String memberId, String status, Pageable pageable) {
         ensureMemberExists(memberId);
 
-        String statusCondition = "";
-        if (status != null && !status.isBlank()) {
-            statusCondition = " AND o.order_status = :status";
-        }
+        String statusCondition = (status != null && !status.isBlank()) ? " AND o.order_status = :status" : "";
 
         String baseSql = """
                 FROM orders o
                 JOIN products p ON p.product_id = o.product_id
-                LEFT JOIN product_images pi
-                    ON pi.product_id = p.product_id AND pi.sort_order = 0
+                LEFT JOIN product_images pi ON pi.product_id = p.product_id AND pi.sort_order = 0
                 LEFT JOIN members m ON m.member_id = o.seller_id
                 WHERE o.seller_id = :memberId
                   AND o.order_status IN ('SHIPPING', 'DELIVERED')
@@ -225,8 +196,7 @@ public class MemberService {
         applyPage(dataQuery, pageable);
 
         List<MemberResponse.SettlementSummary> content = rows(dataQuery).stream()
-                .map(this::toSettlementSummary)
-                .toList();
+                .map(this::toSettlementSummary).toList();
         return PageResponse.of(new PageImpl<>(content, pageable, number(countQuery.getSingleResult()).longValue()));
     }
 
@@ -244,20 +214,14 @@ public class MemberService {
                 .executeUpdate();
     }
 
-    // ↓↓↓ 추가된 메서드 ↓↓↓
     @Transactional
     public void deleteProfileImage(String memberId) {
         ensureMemberExists(memberId);
 
-        // 현재 이미지 경로 조회
         Optional<String> currentImage = memberRepository.findProfileImageUrlByMemberId(memberId);
-
-        // 기본 이미지가 아닌 경우에만 파일 삭제
         if (currentImage.isPresent()
-                && currentImage.get() != null
                 && !currentImage.get().isBlank()
                 && !currentImage.get().equals(DEFAULT_PROFILE_IMAGE_URL)) {
-
             String fileName = currentImage.get().replace("/images/profileImg/", "");
             Path filePath = Paths.get("src/main/resources/static/images/profileImg", fileName);
             try {
@@ -267,43 +231,30 @@ public class MemberService {
             }
         }
 
-        // DB를 기본 이미지 경로로 업데이트
-     
         entityManager.createNativeQuery("""
-                UPDATE members
-                SET profile_image_url = NULL
-                WHERE member_id = :memberId
+                UPDATE members SET profile_image_url = NULL WHERE member_id = :memberId
                 """)
                 .setParameter("memberId", memberId)
                 .executeUpdate();
     }
-    // ↑↑↑ 추가된 메서드 ↑↑↑
 
     public MemberResponse.AccountInfo getAccountInfo(String memberId) {
         ensureMemberExists(memberId);
         List<?> result = entityManager.createNativeQuery("""
-                SELECT bank_code, account_number, name
-                FROM members
-                WHERE member_id = :memberId
+                SELECT bank_code, account_number, name FROM members WHERE member_id = :memberId
                 """)
                 .setParameter("memberId", memberId)
                 .getResultList();
-        if (result.isEmpty()) {
-            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
-        }
+        if (result.isEmpty()) throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
+
         Object[] row = (Object[]) result.get(0);
-        return new MemberResponse.AccountInfo(
-                string(row[0]),
-                string(row[1]),
-                string(row[2])
-        );
+        return new MemberResponse.AccountInfo(string(row[0]), string(row[1]), string(row[2]));
     }
 
     @Transactional
     public void updateAccountInfo(String memberId, MemberRequest.UpdateAccountInfo request) {
         ensureMemberExists(memberId);
 
-        // depositor_name은 항상 members.name으로 고정 (요청값 무시)
         String memberName = (String) entityManager.createNativeQuery("""
                 SELECT name FROM members WHERE member_id = :memberId
                 """)
@@ -324,6 +275,8 @@ public class MemberService {
                 .executeUpdate();
     }
 
+    // ── 내부 헬퍼 ────────────────────────────────────────────────
+
     private void ensureMemberExists(String memberId) {
         if (!memberRepository.existsById(memberId)) {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
@@ -335,22 +288,17 @@ public class MemberService {
                 SELECT member_id, userid, nickname, name, shop_info, member_status,
                        seller_grade, role, bank_code, account_number, depositor_name,
                        marketing_agreed, created_at, profile_image_url
-                FROM members
-                WHERE member_id = :memberId
+                FROM members WHERE member_id = :memberId
                 """)
                 .setParameter("memberId", memberId)
                 .getResultList();
-
-        if (result.isEmpty()) {
-            throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
-        }
+        if (result.isEmpty()) throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         return (Object[]) result.get(0);
     }
 
     private void validateNickname(String memberId, String nickname) {
         String value = blankToNull(nickname);
         if (value == null) return;
-
         Number duplicated = number(entityManager.createNativeQuery("""
                 SELECT COUNT(*) FROM members
                 WHERE nickname = :nickname AND member_id <> :memberId
@@ -358,9 +306,7 @@ public class MemberService {
                 .setParameter("nickname", value)
                 .setParameter("memberId", memberId)
                 .getSingleResult());
-        if (duplicated.longValue() > 0) {
-            throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
-        }
+        if (duplicated.longValue() > 0) throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
     }
 
     private long count(String sql, String memberId) {
@@ -371,9 +317,7 @@ public class MemberService {
 
     private void setMemberAndStatus(Query query, String memberId, String status) {
         query.setParameter("memberId", memberId);
-        if (status != null && !status.isBlank()) {
-            query.setParameter("status", status);
-        }
+        if (status != null && !status.isBlank()) query.setParameter("status", status);
     }
 
     private void applyPage(Query query, Pageable pageable) {
@@ -381,111 +325,60 @@ public class MemberService {
         query.setMaxResults(pageable.getPageSize());
     }
 
+    @SuppressWarnings("unchecked")
     private List<Object[]> rows(Query query) {
-        List<?> raw = query.getResultList();
-        List<Object[]> rows = new ArrayList<>();
-        for (Object row : raw) {
-            rows.add((Object[]) row);
-        }
-        return rows;
+        return ((List<?>) query.getResultList()).stream()
+                .map(r -> (Object[]) r)
+                .toList();
     }
 
     private MemberResponse.Profile toProfile(Object[] row) {
         return new MemberResponse.Profile(
-                string(row[0]),
-                string(row[1]),
-                string(row[2]),
-                string(row[3]),
-                string(row[4]),
-                string(row[5]),
-                string(row[6]),
-                string(row[7]),
-                string(row[8]),
-                string(row[9]),
-                string(row[10]),
-                bool(row[11]),
-                time(row[12]),
-                profileImageUrl(row[13])
+                string(row[0]), string(row[1]), string(row[2]), string(row[3]),
+                string(row[4]), string(row[5]), string(row[6]), string(row[7]),
+                string(row[8]), string(row[9]), string(row[10]),
+                bool(row[11]), time(row[12]), profileImageUrl(row[13])
         );
     }
 
     private MemberResponse.ProductSummary toProductSummary(Object[] row) {
         return new MemberResponse.ProductSummary(
-                number(row[0]).longValue(),
-                string(row[1]),
-                number(row[2]).intValue(),
-                string(row[3]),
-                string(row[4]),
-                string(row[5]),
-                bool(row[6]),
-                number(row[7]).intValue(),
-                number(row[8]).intValue(),
-                string(row[9]),
-                string(row[10]),
-                string(row[11]),
-                string(row[12]),
-                time(row[13])
+                number(row[0]).longValue(), string(row[1]), number(row[2]).intValue(),
+                string(row[3]), string(row[4]), string(row[5]), bool(row[6]),
+                number(row[7]).intValue(), number(row[8]).intValue(),
+                string(row[9]), string(row[10]), string(row[11]), string(row[12]), time(row[13])
         );
     }
 
     private MemberResponse.OrderSummary toOrderSummary(Object[] row) {
         return new MemberResponse.OrderSummary(
-                string(row[0]),
-                number(row[1]).longValue(),
-                string(row[2]),
-                string(row[3]),
-                string(row[4]),
-                string(row[5]),
-                number(row[6]).intValue(),
-                number(row[7]).intValue(),
-                number(row[8]).intValue(),
-                string(row[9]),
-                string(row[10]),
-                string(row[11]),
-                time(row[12]),
-                time(row[13]),
-                time(row[14]),
-                time(row[15]),
-                bool(row[16])
+                string(row[0]), number(row[1]).longValue(), string(row[2]), string(row[3]),
+                string(row[4]), string(row[5]), number(row[6]).intValue(), number(row[7]).intValue(),
+                number(row[8]).intValue(), string(row[9]), string(row[10]), string(row[11]),
+                time(row[12]), time(row[13]), time(row[14]), time(row[15]), bool(row[16])
         );
     }
 
     private MemberResponse.SettlementSummary toSettlementSummary(Object[] row) {
         return new MemberResponse.SettlementSummary(
-                string(row[0]),
-                number(row[1]).longValue(),
-                string(row[2]),
-                string(row[3]),
-                number(row[4]).intValue(),
-                number(row[5]).intValue(),
-                number(row[6]).intValue(),
-                string(row[7]),
-                time(row[8]),
-                string(row[9]),
-                string(row[10]),
-                string(row[11])
+                string(row[0]), number(row[1]).longValue(), string(row[2]), string(row[3]),
+                number(row[4]).intValue(), number(row[5]).intValue(), number(row[6]).intValue(),
+                string(row[7]), time(row[8]), string(row[9]), string(row[10]), string(row[11])
         );
     }
 
-    private String string(Object value) {
-        return value != null ? value.toString() : null;
-    }
-
-    private Number number(Object value) {
-        return (Number) value;
-    }
+    private String string(Object value) { return value != null ? value.toString() : null; }
+    private Number number(Object value) { return (Number) value; }
 
     private boolean bool(Object value) {
-        if (value instanceof Boolean booleanValue) {
-            return booleanValue;
-        }
+        if (value instanceof Boolean b) return b;
         return value != null && number(value).intValue() == 1;
     }
 
     private LocalDateTime time(Object value) {
         if (value == null) return null;
-        if (value instanceof LocalDateTime localDateTime) return localDateTime;
-        if (value instanceof Timestamp timestamp) return timestamp.toLocalDateTime();
+        if (value instanceof LocalDateTime ldt) return ldt;
+        if (value instanceof Timestamp ts) return ts.toLocalDateTime();
         return null;
     }
 

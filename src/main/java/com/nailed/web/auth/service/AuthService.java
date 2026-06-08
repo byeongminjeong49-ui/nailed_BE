@@ -21,7 +21,6 @@ import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
 
 import io.jsonwebtoken.JwtException;
-import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -40,7 +39,6 @@ public class AuthService {
     private final MemberRepository memberRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
-   
 
     public AuthResponse.DuplicateCheck checkUserid(String userid) {
         return new AuthResponse.DuplicateCheck(memberRepository.existsByUserid(normalizeUserid(userid)));
@@ -50,28 +48,22 @@ public class AuthService {
         return new AuthResponse.DuplicateCheck(memberRepository.existsByNickname(nickname));
     }
 
-    // 관리자 전용 예약 키워드 (대소문자 무시)
     private static final List<String> ADMIN_RESERVED_KEYWORDS = List.of(
-        // 관리자 관련
         "관리자", "관리원", "관리팀", "관리부",
         "admin", "administrator", "superadmin", "sysadmin",
         "어드민", "어드미니스트레이터",
         "MEMBER_000",
-        // 운영자 관련
         "운영자", "운영팀", "운영진", "운영부", "운영원",
         "operator", "manager", "moderator",
         "오퍼레이터", "매니저", "모더레이터",
-        // Nailed 브랜드 사칭
         "nailed", "네일드", "네일",
         "nailedadmin", "nailedofficial",
-        // 공식/시스템 사칭
         "공식", "official", "공식계정", "공식운영",
         "시스템", "system",
         "고객센터", "고객지원", "support",
         "staff", "스태프",
         "master", "마스터",
         "root", "루트",
-        // 사칭 가능성
         "총괄", "총관리", "책임자",
         "대표", "대표자",
         "임원", "직원",
@@ -87,11 +79,11 @@ public class AuthService {
             }
         }
     }
+
     @Transactional
     public AuthResponse.Signup signup(AuthRequest.Signup request) {
         String userid = normalizeUserid(request.userid());
 
-        // 관리자 예약 키워드 차단
         validateNotAdminKeyword(userid);
         validateNotAdminKeyword(request.nickname());
         validateNotAdminKeyword(request.name());
@@ -99,12 +91,10 @@ public class AuthService {
         if (memberRepository.existsByUserid(userid)) {
             throw new CustomException(ErrorCode.MEMBER_ALREADY_EXISTS);
         }
-
         if (memberRepository.existsByNickname(request.nickname())) {
             throw new CustomException(ErrorCode.NICKNAME_DUPLICATED);
         }
 
-        // ADMIN role은 회원가입으로 취득 불가 - 무조건 USER로 고정
         Member member = Member.builder()
                 .memberId(generateMemberId())
                 .userid(userid)
@@ -140,23 +130,17 @@ public class AuthService {
         JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);
         member.updateRefreshToken(refreshTokenInfo.refreshToken(), refreshTokenInfo.refreshTokenExpiresAt());
         memberRepository.save(member);
-        System.out.println("** refresh 토큰 발급 후 update 완료->"+member);
-        
+
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshTokenInfo.refreshToken())
-                .httpOnly(true)  //JS접근불가: document.cookie 로 읽을수없음 (XSS 공격 방어)
-                .sameSite("Lax") //또는 None
-                .secure(false)	 //HTTP연결 허용
-                .path("/")		//모든 URL요청에 쿠키 포함
-                .maxAge(Duration.ofDays(7)) //쿠키유지시간, 단위 초 (7일 설정)
+                .httpOnly(true)
+                .sameSite("Lax")
+                .secure(false)
+                .path("/")
+                .maxAge(Duration.ofDays(7))
                 .build();
         response.setHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        
-        
-        
-        
-        
-       // return AuthResponse.Login.from(member, accessTokenInfo, refreshTokenInfo);
-        return AuthResponse.Login.from(member, accessTokenInfo,null);
+
+        return AuthResponse.Login.from(member, accessTokenInfo, null);
     }
 
     public AuthResponse.TokenRefresh refreshAccessToken(String refreshToken) {
@@ -191,7 +175,6 @@ public class AuthService {
                     .ifPresent(Member::clearRefreshToken);
         }
 
-        // 쿠키 삭제
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true)
                 .sameSite("Lax")
@@ -203,8 +186,6 @@ public class AuthService {
 
         return new AuthResponse.SimpleResult(true);
     }
-
-  
 
     @Transactional
     public AuthResponse.PasswordReset requestPasswordReset(AuthRequest.PasswordResetRequest request) {
@@ -280,10 +261,7 @@ public class AuthService {
 
     private void resetExpiredLoginFailureWindow(Member member, LocalDateTime now) {
         LocalDateTime loginFailStartedAt = member.getLoginFailStartedAt();
-        if (loginFailStartedAt == null) {
-            return;
-        }
-
+        if (loginFailStartedAt == null) return;
         if (!loginFailStartedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now)) {
             member.resetLoginFailures();
         }
@@ -292,8 +270,7 @@ public class AuthService {
     private void recordLoginFailure(Member member, LocalDateTime now) {
         LocalDateTime startedAt = member.getLoginFailStartedAt();
         if (startedAt == null || !startedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now)) {
-            startedAt = now;
-            member.recordLoginFailure(startedAt, 1);
+            member.recordLoginFailure(now, 1);
             return;
         }
 
@@ -308,18 +285,9 @@ public class AuthService {
 
     private void validateMemberStatus(Member member) {
         String status = member.getMemberStatus();
-
-        if ("WITHDRAWN".equals(status)) {
-            throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
-        }
-        if ("SUSPEND".equals(status) || "SUSPENDED".equals(status)) {
-            throw new CustomException(ErrorCode.MEMBER_SUSPENDED);
-        }
-        if ("BANNED".equals(status)) {
-            throw new CustomException(ErrorCode.MEMBER_BANNED);
-        }
-        if ("LOCKED".equals(status)) {
-            throw new CustomException(ErrorCode.MEMBER_LOCKED);
-        }
+        if ("WITHDRAWN".equals(status))  throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
+        if ("SUSPEND".equals(status) || "SUSPENDED".equals(status)) throw new CustomException(ErrorCode.MEMBER_SUSPENDED);
+        if ("BANNED".equals(status))     throw new CustomException(ErrorCode.MEMBER_BANNED);
+        if ("LOCKED".equals(status))     throw new CustomException(ErrorCode.MEMBER_LOCKED);
     }
 }
