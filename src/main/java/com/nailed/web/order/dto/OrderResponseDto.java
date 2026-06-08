@@ -45,19 +45,37 @@ public class OrderResponseDto {
 	private LocalDateTime deliveredAt;
 	private LocalDateTime cancelledAt;
 
-	public static OrderResponseDto from(Order order, int shippingFee, int productPrice) {
-		return OrderResponseDto.builder().orderId(order.getOrderId()).productId(order.getProductId())
-				.buyerId(order.getBuyerId()).sellerId(order.getSellerId()).commission(order.getCommission())
-				.productPrice(productPrice).shippingFee(shippingFee).finalPrice(order.getFinalPrice())
-				.sellerSettlementAmount(order.getSellerSettlementAmount()).receiverName(order.getReceiverName())
-				.receiverPhone(order.getReceiverPhone()).receiverZipcode(order.getReceiverZipcode())
-				.receiverAddress(order.getReceiverAddress()).receiverAddressDetail(order.getReceiverAddressDetail())
-				.deliveryRequest(order.getDeliveryRequest()).orderStatus(order.getOrderStatus())
-				.previousStatus(order.getPreviousStatus()).cancelRequestStatus(order.getCancelRequestStatus())
-				.cancelRequestedAt(order.getCancelRequestedAt()).cancelRequestReason(order.getCancelRequestReason())
-				.cancelRespondedAt(order.getCancelRespondedAt()).carrierCode(order.getCarrierCode())
-				.trackingNumber(order.getTrackingNumber()).updatedAt(order.getUpdatedAt()).paidAt(order.getPaidAt())
-				.requestedAt(order.getRequestedAt()).shippedAt(order.getShippedAt()).deliveredAt(order.getDeliveredAt())
-				.cancelledAt(order.getCancelledAt()).build();
-	}
+    public static OrderResponseDto from(Order order, int shippingFee, int productPrice) {
+        return OrderResponseDto.builder()
+                .orderId(order.getOrderId())
+                .productId(order.getProductId())
+                .buyerId(order.getBuyerId())
+                .sellerId(order.getSellerId())
+                .commission(order.getCommission())
+                .productPrice(productPrice)
+                .shippingFee(shippingFee)
+                .finalPrice(order.getFinalPrice())
+                .sellerSettlementAmount(order.getSellerSettlementAmount())
+                .receiverName(order.getReceiverName())
+                .receiverPhone(order.getReceiverPhone())
+                .receiverZipcode(order.getReceiverZipcode())
+                .receiverAddress(order.getReceiverAddress())
+                .receiverAddressDetail(order.getReceiverAddressDetail())
+                .deliveryRequest(order.getDeliveryRequest())
+                .orderStatus(order.getOrderStatus())
+                .previousStatus(order.getPreviousStatus())
+                .cancelRequestStatus(order.getCancelRequestStatus())
+                .cancelRequestedAt(order.getCancelRequestedAt())
+                .cancelRequestReason(order.getCancelRequestReason())
+                .cancelRespondedAt(order.getCancelRespondedAt())
+                .carrierCode(order.getCarrierCode())
+                .trackingNumber(order.getTrackingNumber())
+                .updatedAt(order.getUpdatedAt())
+                .paidAt(order.getPaidAt())
+                .requestedAt(order.getRequestedAt())
+                .shippedAt(order.getShippedAt())
+                .deliveredAt(order.getDeliveredAt())
+                .cancelledAt(order.getCancelledAt())
+                .build();
+    }
 }

@@ -170,11 +170,15 @@ public class AdminOrderService {
                 ));
     }
 
+    // 주문 상태에 따라 "완료 시점"의 의미가 달라짐
+    // - DELIVERED(배송완료): 배송완료 시각(deliveredAt)을 완료 시점으로 봄
+    // - CANCELLED(취소됨): 취소 시각(cancelledAt)을 완료 시점으로 봄
+    // - 그 외 진행 중인 상태: 아직 완료되지 않았으므로 null
     private LocalDateTime completedAt(Order order) {
-        if ("DELIVERED".equals(order.getOrderStatus())) {
+        if (OrderStatus.DELIVERED.name().equals(order.getOrderStatus())) {
             return order.getDeliveredAt();
         }
-        if ("CANCELLED".equals(order.getOrderStatus())) {
+        if (OrderStatus.CANCELLED.name().equals(order.getOrderStatus())) {
             return order.getCancelledAt();
         }
         return null;
@@ -189,6 +193,8 @@ public class AdminOrderService {
         throw new CustomException(ErrorCode.CANCEL_NOT_ALLOWED);
     }
 
+    // 관리자가 주문 1건만 취소 처리한 뒤, 그 단건에 대한 응답을 만들 때 사용하는 오버로드
+    // (목록 조회용 toSummary와 동일한 변환 로직을 재사용하기 위해 단건을 리스트로 감싸서 맵을 구성함)
     private AdminOrderResponse.Summary toSummary(Order order) {
         List<Order> orders = List.of(order);
         Map<String, Member> memberMap = buildMemberMap(orders);

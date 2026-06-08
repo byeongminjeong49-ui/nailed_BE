@@ -1,4 +1,5 @@
 package com.nailed.web.order.service;
+import com.nailed.common.enums.OrderStatus;
 import com.nailed.web.member.service.SellerGradeService;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
@@ -15,8 +16,11 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Transactional
+// 실제 택배사 API 연동 없이, 운송장 형식 검증만으로 배송 단계를 흉내내는 모의(Mock) 구현체
 public class MockShippingService implements ShippingService {
+    // 허용되는 택배사 코드 목록 (ShippingRequestDto.carrierCode 검증용)
     private static final Set<String> ALLOWED_CARRIERS = Set.of("CJ","LOGEN", "HANJIN", "KOREA_POST", "LOTTE");
+    // 운송장 번호 형식: 숫자 10~13자리만 허용
     private static final Pattern TRACKING_PATTERN = Pattern.compile("^[0-9]{10,13}$");
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
@@ -30,7 +34,7 @@ public class MockShippingService implements ShippingService {
             throw new IllegalArgumentException("유효하지 않은 운송장 번호입니다. 숫자 10~13자리로 입력해주세요.");
         }
         Order order = findOrder(orderId);
-        if (!"REQUESTED".equals(order.getOrderStatus())) {
+        if (!OrderStatus.REQUESTED.name().equals(order.getOrderStatus())) {
             throw new IllegalStateException("주문접수 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
         order.startShipping(carrierCode, trackingNumber);
@@ -46,7 +50,7 @@ public class MockShippingService implements ShippingService {
     @Override
     public OrderResponseDto confirmDelivery(String orderId) {
         Order order = findOrder(orderId);
-        if (!"SHIPPING".equals(order.getOrderStatus())) {
+        if (!OrderStatus.SHIPPING.name().equals(order.getOrderStatus())) {
             throw new IllegalStateException("배송 중 상태의 주문만 배송 완료 처리할 수 있습니다.");
         }
         order.markAsDelivered();

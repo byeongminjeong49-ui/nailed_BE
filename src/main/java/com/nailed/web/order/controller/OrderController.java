@@ -60,12 +60,12 @@ public class OrderController {
     }
     // PATCH /api/orders/{orderId}/confirm — 주문 확인 (판매자)
     @PatchMapping("/{orderId}/confirm")
-    public ResponseEntity<?> confirmOrder(
+    public ResponseEntity<OrderResponseDto> confirmOrder(
     		@PathVariable("orderId") String orderId,  
             @RequestParam("sellerId") String sellerId) {
         return ResponseEntity.ok(orderService.confirmOrder(orderId, sellerId));
     }
-    // POST /api/orders/{orderId}/cancel
+    // POST /api/orders/{orderId}/cancel — 주문 취소 요청 (구매자)
     @PostMapping("/{orderId}/cancel")
     public ResponseEntity<OrderResponseDto> cancelOrder(
             @PathVariable("orderId") String orderId,

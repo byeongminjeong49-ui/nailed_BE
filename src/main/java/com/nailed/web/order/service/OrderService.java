@@ -33,6 +33,10 @@ public class OrderService {
         if (product.getProductStatus() != ProductStatus.ON_SALE) {
             throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
         }
+        // 금액 계산 순서: 수수료 → 최종 결제금액 → 판매자 정산금액
+        // - 수수료(commissionAmount) = (상품가 + 배송비) × 수수료율(2%)
+        // - 최종 결제금액(finalPrice) = 상품가 + 배송비 + 수수료  → 구매자가 실제로 결제하는 금액
+        // - 판매자 정산금액(sellerSettlementAmount) = 최종 결제금액 - 수수료  → 배송완료 후 판매자에게 지급되는 금액
         int productPrice        = product.getPrice();
         int shippingFee         = product.getShippingFee();
         int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
@@ -90,7 +94,7 @@ public class OrderService {
         if (!sellerId.equals(order.getSellerId())) {
             throw new IllegalStateException("판매자만 주문을 확인할 수 있습니다.");
         }
-        if (!"PAID".equals(order.getOrderStatus())) {
+        if (!OrderStatus.PAID.name().equals(order.getOrderStatus())) {
             throw new IllegalStateException("결제완료 상태의 주문만 확인할 수 있습니다.");
         }
         order.markAsRequested();
@@ -113,9 +117,14 @@ public class OrderService {
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
+        // ⚠ 재조회가 반드시 필요함 (제거하면 안 됨)
+        // orderRepository.cancelOrder()는 네이티브 쿼리(@Modifying)로 DB를 직접 갱신하기 때문에
+        // 영속성 컨텍스트를 거치지 않음 → 위에서 조회한 order 객체는 여전히 취소 전 상태(PAID)를 들고 있음
+        // 따라서 변경된 최신 상태(orderStatus=CANCELLED, cancelledAt 등)를 응답으로 내려주려면 다시 조회해야 함
         return OrderResponseDto.from(orderRepository.findById(orderId).get(), product.getShippingFee(), product.getPrice());
     }
 
+    // 단순 증가 방식의 주문 ID 생성 (현재 저장된 주문 수 + 1)
     private String generateOrderId() {
         long next = orderRepository.count() + 1;
         return String.format("ORDER_%03d", next);

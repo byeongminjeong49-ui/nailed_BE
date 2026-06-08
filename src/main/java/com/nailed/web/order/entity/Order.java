@@ -20,6 +20,9 @@ public class Order {
     private String buyerId;
     private String sellerId;
     private Long productId;
+
+    // 수수료율(%) — 금액이 아니라 비율 값이 저장됨 (예: 2 → 2%를 의미)
+    // OrderService.DEFAULT_COMMISSION_RATE 기준으로 주문 시점에 결정되어 저장됨
     private Integer commission;
     private Integer finalPrice;
     private Integer sellerSettlementAmount;
@@ -30,6 +33,9 @@ public class Order {
     private String receiverAddressDetail;
     private String deliveryRequest;
     private String previousStatus;
+
+    // 취소 "요청" 진행 상태 (메인 주문 상태인 orderStatus와는 별개로 관리됨)
+    // 가능한 값: NONE(취소 요청 없음) / REQUESTED(취소 요청됨) / APPROVED(취소 승인 완료)
     private String cancelRequestStatus;
     private LocalDateTime cancelRequestedAt;
     private String cancelRequestReason;
@@ -44,6 +50,8 @@ public class Order {
     @LastModifiedDate
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
+    // 주문 상태를 변경하면서 변경 직전 상태를 previousStatus에 함께 기록함
+    // (마이페이지 등에서 "이전 상태로 되돌아갈 수 있는지" 판단할 때 사용됨)
     public void changeStatus(String newStatus) {
         System.out.println("changeStatus 호출: " + this.orderStatus + " → " + newStatus);
         this.previousStatus = this.orderStatus;
