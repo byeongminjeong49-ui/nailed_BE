@@ -7,6 +7,9 @@ import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
+import com.nailed.web.product.entity.ProductImage;
+import com.nailed.web.product.repository.ProductImageRepository;
+import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.review.dto.ReviewRequest;
 import com.nailed.web.review.dto.ReviewResponse;
 import com.nailed.web.review.entity.Review;
@@ -17,6 +20,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -25,6 +30,8 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final OrderRepository orderRepository;
     private final MemberRepository memberRepository;
+    private final ProductRepository productRepository;
+    private final ProductImageRepository productImageRepository;
 
     /**
      * 리뷰 작성
@@ -41,11 +48,9 @@ public class ReviewService {
         if (!"DELIVERED".equals(order.getOrderStatus())) {
             throw new CustomException(ErrorCode.REVIEW_NOT_ALLOWED);
         }
-
         if (!order.getBuyerId().equals(buyerId)) {
             throw new CustomException(ErrorCode.FORBIDDEN);
         }
-
         if (reviewRepository.existsByOrderOrderId(req.orderId())) {
             throw new CustomException(ErrorCode.REVIEW_ALREADY_EXISTS);
         }
@@ -60,7 +65,7 @@ public class ReviewService {
                 .content(req.content())
                 .build();
 
-        return ReviewResponse.Detail.from(reviewRepository.save(review));
+        return toDetail(reviewRepository.save(review));
     }
 
     /**
@@ -80,8 +85,49 @@ public class ReviewService {
 
         Page<ReviewResponse.Detail> reviewPage = reviewRepository
                 .findByOrderSellerIdOrderByCreatedAtDesc(sellerId, pageable)
-                .map(ReviewResponse.Detail::from);
+                .map(this::toDetail);
 
         return new ReviewResponse.SellerReviews(averageRating, PageResponse.of(reviewPage));
+    }
+
+    /**
+     * Review 엔티티 → Detail DTO 변환
+     * - 주문의 productId로 상품명, 대표 이미지, 가격 조회
+     */
+    private ReviewResponse.Detail toDetail(Review review) {
+        Long productId = review.getOrder().getProductId();
+
+        String productTitle = null;
+        Long price = null;
+        String productImageUrl = null;
+
+        if (productId != null) {
+            // 상품명, 가격 조회
+            var productOpt = productRepository.findById(productId);
+            if (productOpt.isPresent()) {
+                var product = productOpt.get();
+                productTitle = product.getTitle();
+                price = Long.valueOf(product.getPrice());
+            }
+
+            // 대표 이미지(sort_order=0) 조회
+            List<ProductImage> images = productImageRepository
+                    .findThumbnailsByProductIds(List.of(productId));
+            if (!images.isEmpty()) {
+                productImageUrl = images.get(0).getImageUrl();
+            }
+        }
+
+        return new ReviewResponse.Detail(
+                review.getReviewId(),
+                review.getOrder().getOrderId(),
+                review.getBuyer().getNickname(),
+                review.getRating(),
+                review.getContent(),
+                review.getCreatedAt(),
+                productTitle,
+                productImageUrl,
+                price
+        );
     }
 }

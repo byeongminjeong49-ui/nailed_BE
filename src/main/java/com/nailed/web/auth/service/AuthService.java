@@ -87,7 +87,7 @@ public class AuthService {
             }
         }
     }
-
+    @Transactional
     public AuthResponse.Signup signup(AuthRequest.Signup request) {
         String userid = normalizeUserid(request.userid());
 

@@ -16,10 +16,15 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -174,7 +179,8 @@ public class MemberService {
                 "SELECT o.order_id, o.product_id, p.title, pi.image_url, o.buyer_id, o.seller_id, "
                         + "p.price, p.shipping_fee, o.final_price, o.order_status, "
                         + "o.previous_status, o.cancel_request_status, o.paid_at, o.shipped_at, "
-                        + "o.delivered_at, o.cancelled_at "
+                        + "o.delivered_at, o.cancelled_at, "
+                        + "EXISTS(SELECT 1 FROM reviews r WHERE r.order_id = o.order_id) AS has_review "
                         + baseSql + " ORDER BY o.paid_at DESC");
         Query countQuery = entityManager.createNativeQuery("SELECT COUNT(*) " + baseSql);
 
@@ -238,10 +244,45 @@ public class MemberService {
                 .executeUpdate();
     }
 
+    // ↓↓↓ 추가된 메서드 ↓↓↓
+    @Transactional
+    public void deleteProfileImage(String memberId) {
+        ensureMemberExists(memberId);
+
+        // 현재 이미지 경로 조회
+        Optional<String> currentImage = memberRepository.findProfileImageUrlByMemberId(memberId);
+
+        // 기본 이미지가 아닌 경우에만 파일 삭제
+        if (currentImage.isPresent()
+                && currentImage.get() != null
+                && !currentImage.get().isBlank()
+                && !currentImage.get().equals(DEFAULT_PROFILE_IMAGE_URL)) {
+
+            String fileName = currentImage.get().replace("/images/profileImg/", "");
+            Path filePath = Paths.get("src/main/resources/static/images/profileImg", fileName);
+            try {
+                Files.deleteIfExists(filePath);
+            } catch (IOException e) {
+                // 파일 삭제 실패해도 DB 업데이트는 진행
+            }
+        }
+
+        // DB를 기본 이미지 경로로 업데이트
+     
+        entityManager.createNativeQuery("""
+                UPDATE members
+                SET profile_image_url = NULL
+                WHERE member_id = :memberId
+                """)
+                .setParameter("memberId", memberId)
+                .executeUpdate();
+    }
+    // ↑↑↑ 추가된 메서드 ↑↑↑
+
     public MemberResponse.AccountInfo getAccountInfo(String memberId) {
         ensureMemberExists(memberId);
         List<?> result = entityManager.createNativeQuery("""
-                SELECT bank_code, account_number, depositor_name
+                SELECT bank_code, account_number, name
                 FROM members
                 WHERE member_id = :memberId
                 """)
@@ -261,6 +302,14 @@ public class MemberService {
     @Transactional
     public void updateAccountInfo(String memberId, MemberRequest.UpdateAccountInfo request) {
         ensureMemberExists(memberId);
+
+        // depositor_name은 항상 members.name으로 고정 (요청값 무시)
+        String memberName = (String) entityManager.createNativeQuery("""
+                SELECT name FROM members WHERE member_id = :memberId
+                """)
+                .setParameter("memberId", memberId)
+                .getSingleResult();
+
         entityManager.createNativeQuery("""
                 UPDATE members
                 SET bank_code       = :bankCode,
@@ -270,7 +319,7 @@ public class MemberService {
                 """)
                 .setParameter("bankCode",      blankToNull(request.bankCode()))
                 .setParameter("accountNumber", blankToNull(request.accountNumber()))
-                .setParameter("depositorName", blankToNull(request.depositorName()))
+                .setParameter("depositorName", memberName)
                 .setParameter("memberId", memberId)
                 .executeUpdate();
     }
@@ -396,7 +445,8 @@ public class MemberService {
                 time(row[12]),
                 time(row[13]),
                 time(row[14]),
-                time(row[15])
+                time(row[15]),
+                bool(row[16])
         );
     }
 
@@ -411,9 +461,9 @@ public class MemberService {
                 number(row[6]).intValue(),
                 string(row[7]),
                 time(row[8]),
-                string(row[9]),   // bankCode
-                string(row[10]),  // accountNumber
-                string(row[11])   // depositorName
+                string(row[9]),
+                string(row[10]),
+                string(row[11])
         );
     }
 

@@ -62,7 +62,8 @@ public class MemberResponse {
             LocalDateTime paidAt,
             LocalDateTime shippedAt,
             LocalDateTime deliveredAt,
-            LocalDateTime cancelledAt
+            LocalDateTime cancelledAt,
+            boolean hasReview
     ) {}
 
     public record SettlementSummary(

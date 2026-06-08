@@ -57,6 +57,15 @@ public class MemberController {
         return ResponseEntity.ok(ApiResponse.success(url));
     }
 
+    // ↓↓↓ 추가된 엔드포인트 ↓↓↓
+    @DeleteMapping("/members/mypage/profile/image")
+    public ResponseEntity<ApiResponse<Void>> deleteProfileImage() {
+        String memberId = SecurityUtil.getCurrentMemberId();
+        memberService.deleteProfileImage(memberId);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+    // ↑↑↑ 추가된 엔드포인트 ↑↑↑
+
     @GetMapping("/members/mypage/products")
     public ResponseEntity<ApiResponse<PageResponse<MemberResponse.ProductSummary>>> getMyProducts(
             @RequestParam(required = false) String status,

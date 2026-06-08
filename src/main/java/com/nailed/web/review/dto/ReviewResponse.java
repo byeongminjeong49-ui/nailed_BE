@@ -1,8 +1,6 @@
 package com.nailed.web.review.dto;
 
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.review.entity.Review;
-
 import java.time.LocalDateTime;
 
 public class ReviewResponse {
@@ -14,23 +12,15 @@ public class ReviewResponse {
             String buyerNickname,   // 작성자 닉네임
             int rating,
             String content,
-            LocalDateTime createdAt
-    ) {
-        public static Detail from(Review review) {
-            return new Detail(
-                    review.getReviewId(),
-                    review.getOrder().getOrderId(),
-                    review.getBuyer().getNickname(),
-                    review.getRating(),
-                    review.getContent(),
-                    review.getCreatedAt()
-            );
-        }
-    }
+            LocalDateTime createdAt,
+            String productTitle,    // 상품명
+            String productImageUrl, // 상품 대표 이미지
+            Long price              // 상품 가격
+    ) {}
 
     /** 판매자 리뷰 목록 (평균 별점 + 페이지) */
     public record SellerReviews(
-            Double averageRating,           // 리뷰 없으면 null
+            Double averageRating,   // 리뷰 없으면 null
             PageResponse<Detail> reviews
     ) {}
 }
