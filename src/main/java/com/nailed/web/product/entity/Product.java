@@ -118,7 +118,7 @@ public class Product extends SoftDeleteEntity {
         this.productStatus = ProductStatus.ON_SALE;
     }
 
-    /** 구매 확정 → 판매완료 */
+    /** 결제(PAID) → 판매완료 */
     public void completeSale() {
         this.productStatus = ProductStatus.SOLD;
     }

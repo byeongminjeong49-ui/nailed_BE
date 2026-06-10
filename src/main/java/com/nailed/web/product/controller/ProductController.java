@@ -194,7 +194,7 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success(productService.getDetail(productId, memberId)));
     }
 
-    // ── 조회수 +1 (비로그인 가능, 세션 쿠키로 중복 방지) ──────
+    // ── 조회수 +1 (비로그인 가능, 서버 세션으로 중복 방지) ──────
 
     @PostMapping("/{productId}/view")
     public ResponseEntity<ApiResponse<Void>> increaseViewCount(
