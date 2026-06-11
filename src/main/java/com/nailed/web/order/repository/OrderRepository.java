@@ -16,7 +16,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
     long countBySellerIdAndOrderStatusIn(String sellerId, List<String> orderStatuses);
     boolean existsByProductIdAndOrderStatusIn(Long productId, List<String> statuses);
 
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = "UPDATE orders SET order_status = 'CANCELLED', previous_status = order_status, " +
                    "cancel_request_status = 'APPROVED', cancelled_at = NOW(), cancel_responded_at = NOW() " +
                    "WHERE order_id = :orderId", nativeQuery = true)

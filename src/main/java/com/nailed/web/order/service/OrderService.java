@@ -12,6 +12,9 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.nailed.common.exception.CustomException;     // 💡 CustomException으로 임포트!
+import com.nailed.common.exception.ErrorCode;
+import org.springframework.dao.PessimisticLockingFailureException;
 
 @Service
 @RequiredArgsConstructor
@@ -28,10 +31,20 @@ public class OrderService {
         if (buyerId.equals(sellerId)) {
             throw new IllegalArgumentException("구매자와 판매자가 동일할 수 없습니다.");
         }
-        Product product = productRepository.findById(req.getProductId())
-                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + req.getProductId()));
+        Product product;
+        try {
+            // 일반 findById 대신 레포지토리에 추가해 둔 findByIdWithLock을 사용해 DB 락을 선점합니다.
+            product = productRepository.findByIdWithLock(req.getProductId())
+                    .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + req.getProductId()));
+        } catch (PessimisticLockingFailureException e) {
+            // 동시에 여러 요청이 들어와 먼저 잡힌 락 때문에 실패(타임아웃 등)한 경우 
+            // 아까 등록해 둔 O012(409 Conflict) 에러 코드를 실어서 커스텀 예외를 던집니다.
+            throw new CustomException(ErrorCode.LOCK_ACQUISITION_FAILED);
+        }
+
+        // 락을 획득하고 들어왔으나, 먼저 수행된 트랜잭션이 이미 결제를 마쳐 SOLD 상태로 변했다면 안전하게 차단합니다.
         if (product.getProductStatus() != ProductStatus.ON_SALE) {
-            throw new IllegalStateException("판매 중인 상품만 주문할 수 있습니다.");
+            throw new CustomException(ErrorCode.PRODUCT_ALREADY_SOLD);
         }
         // 금액 계산 순서: 수수료 → 최종 결제금액 → 판매자 정산금액
         // - 수수료(commissionAmount) = (상품가 + 배송비) × 수수료율(2%)

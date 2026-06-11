@@ -15,8 +15,15 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
+	// 💡 비관적 쓰기 락(Pessimistic Write Lock)을 거는 메서드를 추가합니다.
+	@Lock(LockModeType.PESSIMISTIC_WRITE)
+	@Query("select p from Product p where p.productId = :productId")
+	Optional<Product> findByIdWithLock(@Param("productId") Long productId);
     // 삭제된 상품 제외 단건 조회 (상세 페이지)
     Optional<Product> findByProductIdAndProductStatusNot(Long productId, ProductStatus status);
 
