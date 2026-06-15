@@ -1,4 +1,6 @@
 package com.nailed.web.order.entity;
+import com.nailed.common.enums.CancelRequestStatus;
+import com.nailed.common.enums.CourierCode;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -36,11 +38,13 @@ public class Order {
 
     // 취소 "요청" 진행 상태 (메인 주문 상태인 orderStatus와는 별개로 관리됨)
     // 가능한 값: NONE(취소 요청 없음) / REQUESTED(취소 요청됨) / APPROVED(취소 승인 완료)
-    private String cancelRequestStatus;
+    @Enumerated(EnumType.STRING)
+    private CancelRequestStatus cancelRequestStatus;
     private LocalDateTime cancelRequestedAt;
     private String cancelRequestReason;
     private LocalDateTime cancelRespondedAt;
-    private String carrierCode;
+    @Enumerated(EnumType.STRING)
+    private CourierCode carrierCode;
     private String trackingNumber;
     private LocalDateTime paidAt;
     private LocalDateTime requestedAt;
@@ -66,7 +70,7 @@ public class Order {
         changeStatus("REQUESTED");
         this.requestedAt = LocalDateTime.now();
     }
-    public void startShipping(String carrierCode, String trackingNumber) {
+    public void startShipping(CourierCode carrierCode, String trackingNumber) {
         changeStatus("SHIPPING");
         this.carrierCode = carrierCode;
         this.trackingNumber = trackingNumber;
@@ -79,7 +83,7 @@ public class Order {
     public void cancel() {
         changeStatus("CANCELLED");
         this.cancelledAt = LocalDateTime.now();
-        this.cancelRequestStatus = "APPROVED";
+        this.cancelRequestStatus = CancelRequestStatus.APPROVED;
         this.cancelRespondedAt = LocalDateTime.now();
     }
     public void cancelByAdmin(String reason) {

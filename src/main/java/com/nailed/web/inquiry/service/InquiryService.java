@@ -59,6 +59,7 @@ public class InquiryService {
         if (status == null || status.isBlank()) {
             inquiries = inquiryRepository.findAll(pageable);
         } else {
+            // 요청받은 status 문자열(대소문자 무관)을 InquiryStatus enum으로 변환, 잘못된 값이면 INVALID_INPUT_VALUE 예외 발생
             InquiryStatus inquiryStatus = EnumUtil.parse(
                     InquiryStatus.class,
                     status.trim().toUpperCase(),
@@ -77,6 +78,7 @@ public class InquiryService {
     @Transactional
     public InquiryResponse.AdminDetail answer(String inquiryId, InquiryRequest.Answer request) {
         Inquiry inquiry = findInquiry(inquiryId);
+        // 답변 대기(PENDING) 상태인 문의만 답변 가능 — 이미 답변된 문의의 재답변(상태 변경) 방지
         if (inquiry.getInquiryStatus() != InquiryStatus.PENDING) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
@@ -95,6 +97,7 @@ public class InquiryService {
                 .orElseThrow(() -> new CustomException(ErrorCode.NOT_FOUND));
     }
 
+    // count()+1로 시작해 INQ_001 형식의 ID를 만들고, 이미 존재하는 ID라면(삭제 등으로 번호가 비어있지 않은 경우) 다음 번호로 재시도
     private String generateInquiryId() {
         long num = inquiryRepository.count() + 1;
         String candidateId;

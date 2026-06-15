@@ -5,6 +5,10 @@ import java.time.LocalDateTime;
 
 public class InquiryResponse {
 
+    // 회원용(Summary/Detail)과 관리자용(AdminSummary/AdminDetail)을 별도 record로 분리해둠
+    // - 현재는 memberId 노출 여부 정도만 다르고 나머지 필드는 동일하지만,
+    //   향후 한쪽에만 필드가 추가/변경되어도 서로 영향 없도록 의도적으로 중복 정의함
+
     public record Summary(
             String inquiryId,
             String category,

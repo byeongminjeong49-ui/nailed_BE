@@ -1,5 +1,6 @@
 package com.nailed.web.order.service;
 
+import com.nailed.common.enums.CancelRequestStatus;
 import com.nailed.common.enums.OrderStatus;
 import com.nailed.common.enums.ProductStatus;
 import com.nailed.web.order.dto.OrderRequestDto;
@@ -55,7 +56,7 @@ public class OrderService {
 
         Order order = Order.builder()
                 .orderId(generateOrderId())
-                .cancelRequestStatus("NONE")               // 취소 요청 없음으로 초기화
+                .cancelRequestStatus(CancelRequestStatus.NONE) // 취소 요청 없음으로 초기화
                 .productId(req.getProductId())
                 .buyerId(buyerId)
                 .sellerId(sellerId)

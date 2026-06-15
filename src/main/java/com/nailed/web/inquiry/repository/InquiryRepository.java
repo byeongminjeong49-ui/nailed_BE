@@ -19,6 +19,7 @@ public interface InquiryRepository extends JpaRepository<Inquiry, String> {
 
     Page<Inquiry> findByInquiryStatus(InquiryStatus inquiryStatus, Pageable pageable);
 
+    // 관리자 대시보드용 기간별 문의 등록 건수
     @Query(value = """
             SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count
             FROM inquiries

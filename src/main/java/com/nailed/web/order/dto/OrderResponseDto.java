@@ -1,4 +1,6 @@
 package com.nailed.web.order.dto;
+import com.nailed.common.enums.CancelRequestStatus;
+import com.nailed.common.enums.CourierCode;
 import com.nailed.web.order.entity.Order;
 import lombok.*;
 import java.time.LocalDateTime;
@@ -33,13 +35,13 @@ public class OrderResponseDto {
     private String previousStatus;    // 취소 전 이전 상태
 
     // 취소 정보
-    private String cancelRequestStatus;
+    private CancelRequestStatus cancelRequestStatus;
     private LocalDateTime cancelRequestedAt;
     private String cancelRequestReason;
     private LocalDateTime cancelRespondedAt;
 
     // 배송 추적 정보
-    private String carrierCode;
+    private CourierCode carrierCode;
     private String trackingNumber;
 
     // 주문 단계별 시간

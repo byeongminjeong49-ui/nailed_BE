@@ -1,5 +1,8 @@
 package com.nailed.web.order.service;
+import com.nailed.common.enums.CourierCode;
 import com.nailed.common.enums.OrderStatus;
+import com.nailed.common.exception.ErrorCode;
+import com.nailed.common.util.EnumUtil;
 import com.nailed.web.member.service.SellerGradeService;
 import com.nailed.web.order.dto.OrderResponseDto;
 import com.nailed.web.order.entity.Order;
@@ -10,15 +13,12 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.Set;
 import java.util.regex.Pattern;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class MockShippingService implements ShippingService {
-    // 허용되는 택배사 코드 목록 (ShippingRequestDto.carrierCode 검증용)
-    private static final Set<String> ALLOWED_CARRIERS = Set.of("CJ","LOGEN", "HANJIN", "KOREA_POST", "LOTTE");
     // 운송장 번호 형식: 숫자 10~13자리만 허용
     private static final Pattern TRACKING_PATTERN = Pattern.compile("^[0-9]{10,13}$");
     private final OrderRepository orderRepository;
@@ -26,9 +26,7 @@ public class MockShippingService implements ShippingService {
     private final SellerGradeService sellerGradeService;
     @Override
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
-        if (!ALLOWED_CARRIERS.contains(carrierCode)) {
-            throw new IllegalArgumentException("지원하지 않는 택배사입니다. 허용: " + ALLOWED_CARRIERS);
-        }
+        CourierCode courier = EnumUtil.parse(CourierCode.class, carrierCode, ErrorCode.INVALID_COURIER_CODE);
         if (!TRACKING_PATTERN.matcher(trackingNumber).matches()) {
             throw new IllegalArgumentException("유효하지 않은 운송장 번호입니다. 숫자 10~13자리로 입력해주세요.");
         }
@@ -36,7 +34,7 @@ public class MockShippingService implements ShippingService {
         if (!OrderStatus.REQUESTED.name().equals(order.getOrderStatus())) {
             throw new IllegalStateException("주문접수 상태의 주문만 운송장을 등록할 수 있습니다.");
         }
-        order.startShipping(carrierCode, trackingNumber);
+        order.startShipping(courier, trackingNumber);
         Order savedOrder = orderRepository.save(order);
         // 주문 상태 변경 시 판매자의 거래완료 건수 등이 바뀔 수 있으므로 등급을 재계산
         sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());

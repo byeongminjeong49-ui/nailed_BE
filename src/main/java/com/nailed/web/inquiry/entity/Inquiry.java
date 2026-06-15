@@ -44,6 +44,8 @@ public class Inquiry extends CreatedOnlyEntity {
     @Column(name = "content", length = 1000, nullable = false)
     private String content;
 
+    // @Builder.Default 필수: 이게 없으면 Inquiry.builder()로 생성 시 inquiryStatus가 null이 됨
+    // (Lombok 빌더는 필드 초기값을 무시하고 명시적으로 set하지 않은 필드를 null로 둠)
     @Enumerated(EnumType.STRING)
     @Column(name = "inquiry_status", length = 20, nullable = false)
     @Builder.Default
