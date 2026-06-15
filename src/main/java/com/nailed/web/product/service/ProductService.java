@@ -433,7 +433,8 @@ public class ProductService {
 
     /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
-        Object[] stats = reviewRepository.findReviewStatsBySellerId(seller.getMemberId());
+        List<Object[]> statsList = reviewRepository.findReviewStatsBySellerId(seller.getMemberId());
+        Object[] stats = statsList.isEmpty() ? new Object[]{0L, null} : statsList.get(0);
         long reviewCount = ((Number) stats[0]).longValue();
         Double avgRating = stats[1] != null ? ((Number) stats[1]).doubleValue() : null;
         String profileImageUrl = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId())

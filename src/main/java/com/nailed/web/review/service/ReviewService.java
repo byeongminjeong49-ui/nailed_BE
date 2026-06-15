@@ -86,7 +86,8 @@ public class ReviewService {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
 
-        Object[] stats = reviewRepository.findReviewStatsBySellerId(sellerId);
+        List<Object[]> statsList = reviewRepository.findReviewStatsBySellerId(sellerId);
+        Object[] stats = statsList.isEmpty() ? new Object[]{0L, null} : statsList.get(0);
         Double averageRating = stats[1] != null ? ((Number) stats[1]).doubleValue() : null;
 
         Page<Review> page = reviewRepository

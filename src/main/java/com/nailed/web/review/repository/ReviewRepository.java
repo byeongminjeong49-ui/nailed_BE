@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 주문당 리뷰 중복 여부 확인
@@ -18,7 +20,7 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
            countQuery = "SELECT COUNT(r) FROM Review r WHERE r.order.sellerId = :sellerId")
     Page<Review> findSellerReviews(@Param("sellerId") String sellerId, Pageable pageable);
 
-    // 판매자 리뷰 건수 + 평균 별점 한 번에 조회 (stats[0]=count, stats[1]=avg)
+    // 판매자 리뷰 건수 + 평균 별점 한 번에 조회 (row[0]=count, row[1]=avg)
     @Query("SELECT COUNT(r), AVG(r.rating) FROM Review r WHERE r.order.sellerId = :sellerId")
-    Object[] findReviewStatsBySellerId(@Param("sellerId") String sellerId);
+    List<Object[]> findReviewStatsBySellerId(@Param("sellerId") String sellerId);
 }
