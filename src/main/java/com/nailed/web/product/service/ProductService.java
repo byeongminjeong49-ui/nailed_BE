@@ -1,5 +1,6 @@
 package com.nailed.web.product.service;
 
+import com.nailed.common.enums.GroupType;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.ProductStatus;
 import com.nailed.common.enums.SizeCode;
@@ -38,7 +39,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -66,6 +66,16 @@ public class ProductService {
 
     @Value("${file.static.product.path:src/main/resources/static/images/products}")
     private String staticProductPath;
+
+    // ── 카테고리 / 브랜드 목록 조회 ──────────────────────────
+
+    public List<ProductGroup> getCategories() {
+        return productGroupRepository.findByGroupTypeWithParent(GroupType.CATEGORY);
+    }
+
+    public List<ProductGroup> getBrandsIncludingLuxury() {
+        return productGroupRepository.findBrandsIncludingLuxury();
+    }
 
     // ── 이미지 업로드 ─────────────────────────────────────────
 
@@ -126,7 +136,7 @@ public class ProductService {
 
         Product saved = productRepository.save(product);
 
-        // PRD 순번 채번 (product_prn_sequence 테이블 INSERT → AUTO_INCREMENT 값 사용)
+        // PRD 순번 채번 (product_prd_sequence 테이블 INSERT → AUTO_INCREMENT 값 사용)
         int prdNumber = prnSequenceRepository.save(new ProductPrdSequence()).getSeqId();
 
         // 임시 UUID 파일을 PRD 시퀀스 파일명으로 교체 후 이미지 저장
@@ -151,23 +161,13 @@ public class ProductService {
         ProductResponse.SellerInfo sellerInfo = buildSellerInfo(product.getSeller());
 
         // 카테고리 전체 경로 (맨즈웨어 > 상의 > 티셔츠)
-        String categoryPath = buildCategoryPath(product.getCategory());
+        String categoryPath = product.getCategory().buildCategoryPath();
 
         // 현재 로그인 유저의 찜 여부 (비로그인이면 false)
         boolean isWishlisted = memberId != null &&
                 wishlistRepository.existsByMemberMemberIdAndProductProductId(memberId, productId);
 
         return ProductResponse.Detail.from(product, imageUrls, sellerInfo, categoryPath, isWishlisted);
-    }
-
-    private String buildCategoryPath(ProductGroup category) {
-        List<String> parts = new ArrayList<>();
-        ProductGroup curr = category;
-        while (curr != null) {
-            parts.add(0, curr.getName());
-            curr = curr.getParent();
-        }
-        return String.join(" > ", parts);
     }
 
     // ── 조회수 +1 ─────────────────────────────────────────────
@@ -484,7 +484,7 @@ public class ProductService {
     }
 
     /**
-     * 상품 등록 시: 임시 UUID 파일 전체를 PRD_{productId}_{1,2,3...}.jpg 로 rename 후 static 경로로 이동
+     * 상품 등록 시: 임시 UUID 파일 전체를 PRD_{시퀀스}_{1,2,3...}.jpg 로 rename 후 static 경로로 이동
      * sort_order 0 = 대표 이미지 (첫 번째 URL)
      */
     private List<String> renameToSequence(List<String> tempUrls, int prdNumber) {
@@ -510,21 +510,30 @@ public class ProductService {
 
     /**
      * 상품 수정 시: 기존 PRD URL은 그대로 두고, 새로 업로드된 임시 파일만 PRD 시퀀스로 rename
-     * 기존 이미지의 max 순번 다음부터 이어서 채번
+     * - 기존 파일명(PRD_{시퀀스}_{순번})에서 시퀀스 번호를 추출해 그대로 재사용 → 등록/수정 파일 prefix 일치
+     * - 기존 이미지의 max 순번 다음부터 이어서 채번
      */
     private List<String> renameNewUploads(List<String> imageUrls, Long productId) {
         List<ProductImage> existingImages = productImageRepository.findByProductProductIdOrderBySortOrderAsc(productId);
         int maxIndex = 0;
+        Integer prdNumber = null;
         for (ProductImage img : existingImages) {
             if (!img.getImageUrl().startsWith("/images/products/")) continue;
             String name = img.getImageUrl().substring(img.getImageUrl().lastIndexOf('/') + 1);
-            String[] parts = name.split("[_.]");
+            String[] parts = name.split("[_.]");   // PRD_{시퀀스}_{순번}.확장자
             try {
                 int idx = Integer.parseInt(parts[parts.length - 2]);
                 if (idx > maxIndex) maxIndex = idx;
+                // 대표 이미지(sort_order 오름차순 첫 파일)의 시퀀스 번호를 상품 공통 prefix로 사용
+                if (prdNumber == null) prdNumber = Integer.parseInt(parts[1]);
             } catch (Exception e) {
                 // ignore malformed filename
             }
+        }
+
+        // 기존 PRD 파일에서 시퀀스를 못 찾으면(전부 교체 등) 새 시퀀스 채번
+        if (prdNumber == null) {
+            prdNumber = prnSequenceRepository.save(new ProductPrdSequence()).getSeqId();
         }
 
         List<String> result = new ArrayList<>();
@@ -536,7 +545,7 @@ public class ProductService {
             }
             newIdx++;
             String ext = url.substring(url.lastIndexOf("."));
-            String newName = String.format("PRD_%03d_%d%s", productId, maxIndex + newIdx, ext);
+            String newName = String.format("PRD_%03d_%d%s", prdNumber, maxIndex + newIdx, ext);
 
             try {
                 Path from = Paths.get(uploadPath).resolve(url.replace("/uploads/", ""));
@@ -570,25 +579,12 @@ public class ProductService {
         saveImages(product, newUrls);
     }
 
-    private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
-        if (productIds.isEmpty()) return Map.of();
-        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
-        Map<Long, String> map = new HashMap<>();
-        for (ProductImage img : thumbnails) {
-            Long pid = img.getProduct().getProductId();
-            if (!map.containsKey(pid)) {
-                map.put(pid, img.getImageUrl());
-            }
-        }
-        return map;
-    }
-
     private PageResponse<ProductResponse.Summary> toSummaryPage(Page<Product> page) {
         List<Long> productIds = new ArrayList<>();
         for (Product p : page.getContent()) {
             productIds.add(p.getProductId());
         }
-        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
         return PageResponse.of(page.map(p ->
                 ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId()))));
     }
@@ -598,7 +594,7 @@ public class ProductService {
         for (Product p : products) {
             productIds.add(p.getProductId());
         }
-        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
         List<ProductResponse.Summary> result = new ArrayList<>();
         for (Product p : products) {
             result.add(ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId())));

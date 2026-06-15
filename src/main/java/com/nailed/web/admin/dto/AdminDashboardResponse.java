@@ -53,8 +53,7 @@ public class AdminDashboardResponse {
 
     public record ReportStats(
             long totalReports,
-            long pendingReports,
-            long approvedReports,
+            long approvedReports,   // 처리 대기 (APPROVED = 접수됨)
             long rejectedReports,
             long doneReports
     ) {}

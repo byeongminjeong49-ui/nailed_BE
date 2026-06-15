@@ -35,8 +35,4 @@ public class ProductImage extends CreatedOnlyEntity {
     @Column(name = "sort_order", nullable = false)
     @Builder.Default
     private int sortOrder = 0;
-
-    public void updateSortOrder(int sortOrder) {
-        this.sortOrder = sortOrder;
-    }
 }

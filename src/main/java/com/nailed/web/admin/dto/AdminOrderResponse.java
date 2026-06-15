@@ -1,4 +1,4 @@
-package com.nailed.web.order.dto;
+package com.nailed.web.admin.dto;
 
 import java.time.LocalDateTime;
 

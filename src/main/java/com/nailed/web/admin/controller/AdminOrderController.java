@@ -1,10 +1,10 @@
-package com.nailed.web.order.controller;
+package com.nailed.web.admin.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.order.dto.AdminOrderCancelRequest;
-import com.nailed.web.order.dto.AdminOrderResponse;
-import com.nailed.web.order.service.AdminOrderService;
+import com.nailed.web.admin.dto.AdminOrderCancelRequest;
+import com.nailed.web.admin.dto.AdminOrderResponse;
+import com.nailed.web.admin.service.AdminOrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

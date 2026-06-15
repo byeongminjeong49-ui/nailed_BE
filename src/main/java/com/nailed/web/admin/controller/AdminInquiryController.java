@@ -1,4 +1,4 @@
-package com.nailed.web.inquiry.controller;
+package com.nailed.web.admin.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;

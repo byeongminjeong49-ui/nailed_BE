@@ -1,15 +1,15 @@
-package com.nailed.web.report.service;
+package com.nailed.web.admin.service;
 
 import com.nailed.common.enums.ReportReason;
 import com.nailed.common.enums.ReportStatus;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
+import com.nailed.common.util.EnumUtil;
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.member.service.AdminMemberService;
+import com.nailed.web.admin.dto.AdminReportPenalizeRequest;
+import com.nailed.web.admin.dto.AdminReportRejectRequest;
+import com.nailed.web.admin.dto.AdminReportResponse;
 import com.nailed.web.member.entity.Member;
-import com.nailed.web.report.dto.AdminReportPenalizeRequest;
-import com.nailed.web.report.dto.AdminReportRejectRequest;
-import com.nailed.web.report.dto.AdminReportResponse;
 import com.nailed.web.report.entity.Report;
 import com.nailed.web.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -50,7 +50,7 @@ public class AdminReportService {
                 pageable
         );
 
-        return PageResponse.of(page.map(report -> toSummary(report)));
+        return PageResponse.of(page.map(this::toSummary));
     }
 
     @Transactional
@@ -142,26 +142,12 @@ public class AdminReportService {
 
     private ReportReason parseReason(String reasonCode) {
         String value = blankToNull(reasonCode);
-        if (value == null) {
-            return null;
-        }
-        try {
-            return ReportReason.valueOf(value.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new CustomException(ErrorCode.INVALID_REPORT_REASON);
-        }
+        return value != null ? EnumUtil.parse(ReportReason.class, value, ErrorCode.INVALID_REPORT_REASON) : null;
     }
 
     private ReportStatus parseStatus(String status) {
         String value = blankToNull(status);
-        if (value == null) {
-            return null;
-        }
-        try {
-            return ReportStatus.valueOf(value.toUpperCase());
-        } catch (IllegalArgumentException e) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
+        return value != null ? EnumUtil.parse(ReportStatus.class, value, ErrorCode.INVALID_INPUT_VALUE) : null;
     }
 
     private String blankToNull(String value) {

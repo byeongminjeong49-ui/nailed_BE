@@ -4,6 +4,9 @@ import com.nailed.common.enums.GroupType;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 카테고리 / 브랜드 통합 계층형 마스터 테이블
  * - group_type = CATEGORY: 상품 카테고리 (parent_id로 2단계 계층 구성)
@@ -53,10 +56,6 @@ public class ProductGroup {
         return this.groupType == GroupType.CATEGORY;
     }
 
-    public boolean isBrand() {
-        return this.groupType == GroupType.BRAND;
-    }
-
     // BRAND 타입 또는 럭셔리 서브카테고리(CATEGORY 타입이지만 브랜드 역할)를 브랜드 참조로 허용
     public boolean isValidBrandRef() {
         if (this.groupType == GroupType.BRAND) return true;
@@ -66,7 +65,14 @@ public class ProductGroup {
                 && !this.code.equals("LUXURY_BRAND");
     }
 
-    public void updateName(String name) {
-        this.name = name;
+    // 맨즈웨어 > 상의 > 티셔츠 형태의 전체 경로 반환
+    public String buildCategoryPath() {
+        List<String> parts = new ArrayList<>();
+        ProductGroup curr = this;
+        while (curr != null) {
+            parts.add(0, curr.getName());
+            curr = curr.getParent();
+        }
+        return String.join(" > ", parts);
     }
 }

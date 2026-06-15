@@ -47,8 +47,8 @@ public class ReportService {
     public PageResponse<ReportResponse.Summary> getMyReports(String memberId, Pageable pageable) {
         return PageResponse.of(
                 reportRepository
-                        .findByReporter_MemberIdOrderByCreatedAtDesc(memberId, pageable)
-                        .map(report -> ReportResponse.Summary.from(report))
+                        .findMyReports(memberId, pageable)
+                        .map(ReportResponse.Summary::from)
         );
     }
 

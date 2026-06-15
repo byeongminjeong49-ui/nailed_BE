@@ -1,4 +1,4 @@
-package com.nailed.web.product.dto;
+package com.nailed.web.admin.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

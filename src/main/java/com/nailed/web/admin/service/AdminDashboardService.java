@@ -149,8 +149,7 @@ public class AdminDashboardService {
 
     private AdminDashboardResponse.ReportStats reportStats() {
         return new AdminDashboardResponse.ReportStats(
-                count("SELECT COUNT(*) FROM reports WHERE report_status IN ('APPROVED', 'REJECTED', 'DONE')"),
-                0,
+                count("SELECT COUNT(*) FROM reports"),
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'APPROVED'"),
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'REJECTED'"),
                 count("SELECT COUNT(*) FROM reports WHERE report_status = 'DONE'")

@@ -1,4 +1,4 @@
-package com.nailed.web.member.service;
+package com.nailed.web.admin.service;
 
 import com.nailed.common.enums.MemberStatus;
 import com.nailed.common.enums.PenaltyType;
@@ -7,9 +7,9 @@ import com.nailed.common.enums.SellerGrade;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.member.dto.AdminMemberPenaltyRequest;
-import com.nailed.web.member.dto.AdminMemberPenaltyResponse;
-import com.nailed.web.member.dto.AdminMemberResponse;
+import com.nailed.web.admin.dto.AdminMemberPenaltyRequest;
+import com.nailed.web.admin.dto.AdminMemberPenaltyResponse;
+import com.nailed.web.admin.dto.AdminMemberResponse;
 import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.entity.MemberPenalty;
 import com.nailed.web.member.repository.MemberPenaltyRepository;
@@ -43,6 +43,33 @@ public class AdminMemberService {
                 parseSellerGrade(sellerGrade),
                 pageable
         ).map(this::toSummary));
+    }
+
+    public AdminMemberResponse.Detail getMember(String memberId) {
+        Member member = findMember(memberId);
+        return new AdminMemberResponse.Detail(
+                member.getMemberId(),
+                member.getUserid(),
+                member.getNickname(),
+                member.getName(),
+                member.getRole(),
+                member.getSellerGrade(),
+                member.getMemberStatus(),
+                member.getLockedUntil(),
+                member.getLoginCount(),
+                member.isMarketingAgreed(),
+                member.getShopInfo(),
+                member.getCreatedAt()
+        );
+    }
+
+    @Transactional
+    public void unsuspend(String memberId) {
+        Member member = findMember(memberId);
+        if (!MemberStatus.SUSPEND.name().equals(member.getMemberStatus())) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+        member.unsuspend();
     }
 
     @Transactional

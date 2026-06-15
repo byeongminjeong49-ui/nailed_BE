@@ -1,11 +1,11 @@
-package com.nailed.web.report.controller;
+package com.nailed.web.admin.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.report.dto.AdminReportPenalizeRequest;
-import com.nailed.web.report.dto.AdminReportRejectRequest;
-import com.nailed.web.report.dto.AdminReportResponse;
-import com.nailed.web.report.service.AdminReportService;
+import com.nailed.web.admin.dto.AdminReportPenalizeRequest;
+import com.nailed.web.admin.dto.AdminReportRejectRequest;
+import com.nailed.web.admin.dto.AdminReportResponse;
+import com.nailed.web.admin.service.AdminReportService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;

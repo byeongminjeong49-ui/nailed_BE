@@ -34,7 +34,7 @@ public class Member extends BaseEntity {
     @Column(name = "name", length = 30, nullable = false)
     private String name;
 
-    @Column(name = "shop_info", length = 500)
+    @Column(name = "shop_info", length = 80)
     private String shopInfo;
 
     // 계정 상태 (ACTIVE / LOCKED / WITHDRAWN / SUSPEND / BANNED)
@@ -122,6 +122,11 @@ public class Member extends BaseEntity {
     public void suspendUntil(LocalDateTime endsAt) {
         this.memberStatus = "SUSPEND";
         this.lockedUntil = endsAt;
+    }
+
+    public void unsuspend() {
+        this.memberStatus = "ACTIVE";
+        this.lockedUntil = null;
     }
 
     public void ban() {

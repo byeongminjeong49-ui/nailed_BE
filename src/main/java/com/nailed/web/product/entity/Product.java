@@ -96,11 +96,6 @@ public class Product extends SoftDeleteEntity {
 
     // ── 비즈니스 메서드 ──────────────────────────────
 
-    /** 조회수 +1 */
-    public void increaseViewCount() {
-        this.viewCount++;
-    }
-
     /** 찜 등록 시 찜수 +1 */
     public void increaseWishlistCount() {
         this.wishlistCount++;

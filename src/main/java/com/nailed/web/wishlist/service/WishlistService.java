@@ -8,7 +8,6 @@ import com.nailed.web.member.entity.Member;
 import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.product.dto.ProductResponse;
 import com.nailed.web.product.entity.Product;
-import com.nailed.web.product.entity.ProductImage;
 import com.nailed.web.product.repository.ProductImageRepository;
 import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.wishlist.entity.Wishlist;
@@ -20,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -98,7 +96,7 @@ public class WishlistService {
         for (Wishlist w : page.getContent()) {
             productIds.add(w.getProduct().getProductId());
         }
-        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
 
         return PageResponse.of(page.map(w ->
                 ProductResponse.Summary.from(w.getProduct(),
@@ -119,16 +117,4 @@ public class WishlistService {
                 .orElseThrow(() -> new CustomException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
-        if (productIds.isEmpty()) return Map.of();
-        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
-        Map<Long, String> map = new HashMap<>();
-        for (ProductImage img : thumbnails) {
-            Long pid = img.getProduct().getProductId();
-            if (!map.containsKey(pid)) {
-                map.put(pid, img.getImageUrl());
-            }
-        }
-        return map;
-    }
 }

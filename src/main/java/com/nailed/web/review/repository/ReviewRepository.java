@@ -14,8 +14,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
     // 주문당 리뷰 중복 여부 확인
     boolean existsByOrderOrderId(String orderId);
 
-    // 판매자 기준 리뷰 목록 (최신순)
-    Page<Review> findByOrderSellerIdOrderByCreatedAtDesc(String sellerId, Pageable pageable);
+    // 판매자 기준 리뷰 목록 (최신순) — order/buyer 를 함께 로딩해 N+1 방지
+    @Query(value = "SELECT r FROM Review r JOIN FETCH r.order o JOIN FETCH r.buyer " +
+                   "WHERE o.sellerId = :sellerId ORDER BY r.createdAt DESC",
+           countQuery = "SELECT COUNT(r) FROM Review r WHERE r.order.sellerId = :sellerId")
+    Page<Review> findSellerReviews(@Param("sellerId") String sellerId, Pageable pageable);
 
     // 판매자 리뷰 건수
     long countByOrderSellerId(String sellerId);

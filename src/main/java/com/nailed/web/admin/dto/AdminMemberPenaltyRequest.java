@@ -1,4 +1,4 @@
-package com.nailed.web.member.dto;
+package com.nailed.web.admin.dto;
 
 import com.nailed.common.enums.PenaltyType;
 import jakarta.validation.constraints.NotBlank;

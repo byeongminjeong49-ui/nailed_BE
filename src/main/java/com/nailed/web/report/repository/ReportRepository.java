@@ -20,8 +20,27 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(report_id, 5) AS UNSIGNED)), 0) " +
                    "FROM reports WHERE report_id REGEXP '^RPT_[0-9]+$'", nativeQuery = true)
     Optional<Integer> findMaxSequentialNumber();
-    @Query("""
+
+    @Query(value = """
             SELECT r FROM Report r
+            JOIN FETCH r.reporter
+            JOIN FETCH r.targetMember
+            WHERE (:keyword IS NULL
+                OR LOWER(r.reportId) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.reporter.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.reporter.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.memberId) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.targetMember.nickname) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(CAST(r.reasonCode AS string)) LIKE LOWER(CONCAT('%', :keyword, '%'))
+                OR LOWER(r.detail) LIKE LOWER(CONCAT('%', :keyword, '%')))
+              AND (:reasonCode IS NULL OR r.reasonCode = :reasonCode)
+              AND (:status IS NULL OR r.reportStatus = :status)
+              AND (:dateFrom IS NULL OR r.createdAt >= :dateFrom)
+              AND (:dateTo IS NULL OR r.createdAt <= :dateTo)
+            """,
+           countQuery = """
+            SELECT COUNT(r) FROM Report r
             WHERE (:keyword IS NULL
                 OR LOWER(r.reportId) LIKE LOWER(CONCAT('%', :keyword, '%'))
                 OR LOWER(r.reporter.userid) LIKE LOWER(CONCAT('%', :keyword, '%'))
@@ -43,7 +62,11 @@ public interface ReportRepository extends JpaRepository<Report, String> {
             @Param("dateFrom") LocalDateTime dateFrom,
             @Param("dateTo") LocalDateTime dateTo,
             Pageable pageable);
-    Page<Report> findByReporter_MemberIdOrderByCreatedAtDesc(String memberId, Pageable pageable);
+    // 내 신고 목록 (최신순) — Summary 가 targetMember 를 참조하므로 JOIN FETCH 로 N+1 방지
+    @Query(value = "SELECT r FROM Report r JOIN FETCH r.targetMember " +
+                   "WHERE r.reporter.memberId = :memberId ORDER BY r.createdAt DESC",
+           countQuery = "SELECT COUNT(r) FROM Report r WHERE r.reporter.memberId = :memberId")
+    Page<Report> findMyReports(@Param("memberId") String memberId, Pageable pageable);
 
     @Query(value = """
             SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count

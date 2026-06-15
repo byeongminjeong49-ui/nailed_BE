@@ -15,7 +15,7 @@ public class ReviewResponse {
             LocalDateTime createdAt,
             String productTitle,    // 상품명
             String productImageUrl, // 상품 대표 이미지
-            Long price              // 상품 가격
+            Integer price           // 상품 가격 (상품 조회 불가 시 null)
     ) {}
 
     /** 판매자 리뷰 목록 (평균 별점 + 페이지) */

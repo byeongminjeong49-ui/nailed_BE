@@ -1,10 +1,10 @@
-package com.nailed.web.product.controller;
+package com.nailed.web.admin.controller;
 
 import com.nailed.common.response.ApiResponse;
 import com.nailed.common.response.PageResponse;
-import com.nailed.web.product.dto.AdminProductHideRequest;
-import com.nailed.web.product.dto.AdminProductResponse;
-import com.nailed.web.product.service.AdminProductService;
+import com.nailed.web.admin.dto.AdminProductHideRequest;
+import com.nailed.web.admin.dto.AdminProductResponse;
+import com.nailed.web.admin.service.AdminProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +46,11 @@ public class AdminProductController {
                 sellerKeyword,
                 pageable
         )));
+    }
+
+    @GetMapping("/{productId}")
+    public ResponseEntity<ApiResponse<AdminProductResponse.Detail>> getProduct(@PathVariable Long productId) {
+        return ResponseEntity.ok(ApiResponse.success(adminProductService.getProduct(productId)));
     }
 
     @PatchMapping("/{productId}/hide")

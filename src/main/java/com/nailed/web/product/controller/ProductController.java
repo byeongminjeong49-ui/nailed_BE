@@ -1,6 +1,5 @@
 package com.nailed.web.product.controller;
 
-import com.nailed.common.enums.GroupType;
 import com.nailed.common.enums.ProductCondition;
 import com.nailed.common.enums.SizeCode;
 import com.nailed.common.exception.CustomException;
@@ -11,7 +10,6 @@ import com.nailed.common.util.SecurityUtil;
 import com.nailed.web.product.dto.ProductRequest;
 import com.nailed.web.product.dto.ProductResponse;
 import com.nailed.web.product.entity.ProductGroup;
-import com.nailed.web.product.repository.ProductGroupRepository;
 import com.nailed.web.product.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -33,7 +31,6 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
-    private final ProductGroupRepository productGroupRepository;
 
     // ── 카테고리 목록 (비로그인 가능) ────────────────────────
 
@@ -43,9 +40,7 @@ public class ProductController {
 
     @GetMapping("/categories")
     public ResponseEntity<ApiResponse<List<CategoryDto>>> getCategories() {
-        List<ProductGroup> groups =
-                productGroupRepository.findByGroupTypeWithParent(GroupType.CATEGORY);
-
+        List<ProductGroup> groups = productService.getCategories();
         List<CategoryDto> result = new ArrayList<>();
         for (ProductGroup g : groups) {
             result.add(new CategoryDto(
@@ -81,9 +76,7 @@ public class ProductController {
 
     @GetMapping("/brands")
     public ResponseEntity<ApiResponse<List<CategoryDto>>> getBrands() {
-        List<ProductGroup> groups =
-                productGroupRepository.findBrandsIncludingLuxury();
-
+        List<ProductGroup> groups = productService.getBrandsIncludingLuxury();
         List<CategoryDto> result = new ArrayList<>();
         for (ProductGroup g : groups) {
             result.add(new CategoryDto(

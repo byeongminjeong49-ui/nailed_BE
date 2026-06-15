@@ -88,7 +88,7 @@ public class ReviewService {
                 .orElse(null);
 
         Page<Review> page = reviewRepository
-                .findByOrderSellerIdOrderByCreatedAtDesc(sellerId, pageable);
+                .findSellerReviews(sellerId, pageable);
 
         // 상품 ID 일괄 수집 → 상품 정보 + 썸네일 배치 조회 (N+1 방지)
         List<Long> productIds = new ArrayList<>();
@@ -105,7 +105,7 @@ public class ReviewService {
                 productMap.put(p.getProductId(), p);
             }
         }
-        Map<Long, String> thumbnailMap = buildThumbnailMap(productIds);
+        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
 
         Page<ReviewResponse.Detail> detailPage = page.map(r ->
                 toDetail(r, productMap, thumbnailMap));
@@ -121,7 +121,7 @@ public class ReviewService {
         Long productId = review.getOrder().getProductId();
 
         String productTitle = null;
-        Long price = null;
+        Integer price = null;
         String productImageUrl = null;
 
         if (productId != null) {
@@ -129,7 +129,7 @@ public class ReviewService {
             if (productOpt.isPresent()) {
                 Product product = productOpt.get();
                 productTitle = product.getTitle();
-                price = Long.valueOf(product.getPrice());
+                price = product.getPrice();
             }
 
             List<ProductImage> images = productImageRepository
@@ -163,14 +163,14 @@ public class ReviewService {
         Long productId = review.getOrder().getProductId();
 
         String productTitle = null;
-        Long price = null;
+        Integer price = null;
         String productImageUrl = null;
 
         if (productId != null) {
             Product product = productMap.get(productId);
             if (product != null) {
                 productTitle = product.getTitle();
-                price = Long.valueOf(product.getPrice());
+                price = product.getPrice();
             }
             productImageUrl = thumbnailMap.get(productId);
         }
@@ -188,17 +188,4 @@ public class ReviewService {
         );
     }
 
-    /** 썸네일 배치 조회 (productId → imageUrl 맵 반환) */
-    private Map<Long, String> buildThumbnailMap(List<Long> productIds) {
-        if (productIds.isEmpty()) return Map.of();
-        List<ProductImage> thumbnails = productImageRepository.findThumbnailsByProductIds(productIds);
-        Map<Long, String> map = new HashMap<>();
-        for (ProductImage img : thumbnails) {
-            Long pid = img.getProduct().getProductId();
-            if (!map.containsKey(pid)) {
-                map.put(pid, img.getImageUrl());
-            }
-        }
-        return map;
-    }
 }
