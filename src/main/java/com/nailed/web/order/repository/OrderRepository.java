@@ -10,10 +10,9 @@ import java.util.List;
 import java.time.LocalDateTime;
 
 public interface OrderRepository extends JpaRepository<Order, String> {
-    // 판매자의 거래완료(DELIVERED) 건수 → 판매자 프로필 카드 표시용
+    // 판매자의 거래완료(DELIVERED) 건수 → 판매자 등급 산정용
     long countBySellerIdAndOrderStatus(String sellerId, String orderStatus);
     // 특정 상품의 진행중 거래 존재 여부 → 상품 삭제 불가 체크용
-    long countBySellerIdAndOrderStatusIn(String sellerId, List<String> orderStatuses);
     boolean existsByProductIdAndOrderStatusIn(Long productId, List<String> statuses);
 
     @Modifying(clearAutomatically = true)
@@ -22,6 +21,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
                    "WHERE order_id = :orderId", nativeQuery = true)
     void cancelOrder(@Param("orderId") String orderId);
 
+    // 관리자 주문 목록 검색: 주문번호/구매자·판매자 아이디·닉네임/상품명 키워드 + 주문상태/기간 필터 (페이징)
     @Query(value = """
             SELECT o FROM Order o
             JOIN Member buyer ON buyer.memberId = o.buyerId
@@ -61,6 +61,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             @Param("dateTo") LocalDateTime dateTo,
             Pageable pageable);
 
+    // 관리자 대시보드용 기간별 매출(수수료 수익) 합계 (주문접수 이후 상태만 집계, final_price * commission(%) / 100을 10원 단위로 반올림)
     @Query(value = """
             SELECT DATE_FORMAT(requested_at, :dateFormat) AS label,
                    COALESCE(SUM(ROUND((final_price * commission / 100), -1)), 0) AS sales
@@ -76,6 +77,7 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt);
 
+    // 관리자 대시보드용 기간별 주문 건수 (주문접수 이후 상태만 집계)
     @Query(value = """
             SELECT DATE_FORMAT(requested_at, :dateFormat) AS label, COUNT(*) AS count
             FROM orders

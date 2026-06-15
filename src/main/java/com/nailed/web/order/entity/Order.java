@@ -53,10 +53,8 @@ public class Order {
     // 주문 상태를 변경하면서 변경 직전 상태를 previousStatus에 함께 기록함
     // (마이페이지 등에서 "이전 상태로 되돌아갈 수 있는지" 판단할 때 사용됨)
     public void changeStatus(String newStatus) {
-        System.out.println("changeStatus 호출: " + this.orderStatus + " → " + newStatus);
         this.previousStatus = this.orderStatus;
         this.orderStatus = newStatus;
-        System.out.println("변경 후: " + this.orderStatus);
     }
     // 결제 완료 → paidAt 기록, previousStatus = null (최초 상태 전환)
     public void markAsPaid() {
@@ -87,10 +85,5 @@ public class Order {
     public void cancelByAdmin(String reason) {
         this.cancelRequestReason = reason;
         cancel();
-    }
-    public void requestCancel(String reason) {
-        this.cancelRequestStatus = "REQUESTED";
-        this.cancelRequestReason = reason;
-        this.cancelRequestedAt = LocalDateTime.now();
     }
 }

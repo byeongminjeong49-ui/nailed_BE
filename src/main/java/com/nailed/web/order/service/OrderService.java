@@ -12,7 +12,7 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.nailed.common.exception.CustomException;     // 💡 CustomException으로 임포트!
+import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import org.springframework.dao.PessimisticLockingFailureException;
 
@@ -46,10 +46,7 @@ public class OrderService {
         if (product.getProductStatus() != ProductStatus.ON_SALE) {
             throw new CustomException(ErrorCode.PRODUCT_ALREADY_SOLD);
         }
-        // 금액 계산 순서: 수수료 → 최종 결제금액 → 판매자 정산금액
-        // - 수수료(commissionAmount) = (상품가 + 배송비) × 수수료율(2%)
-        // - 최종 결제금액(finalPrice) = 상품가 + 배송비 + 수수료  → 구매자가 실제로 결제하는 금액
-        // - 판매자 정산금액(sellerSettlementAmount) = 최종 결제금액 - 수수료  → 배송완료 후 판매자에게 지급되는 금액
+        // 수수료 = (상품가 + 배송비) × 수수료율, 정산금액 = 최종 결제금액 - 수수료
         int productPrice        = product.getPrice();
         int shippingFee         = product.getShippingFee();
         int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
@@ -58,13 +55,13 @@ public class OrderService {
 
         Order order = Order.builder()
                 .orderId(generateOrderId())
-                .cancelRequestStatus("NONE")
+                .cancelRequestStatus("NONE")               // 취소 요청 없음으로 초기화
                 .productId(req.getProductId())
                 .buyerId(buyerId)
                 .sellerId(sellerId)
-                .commission(DEFAULT_COMMISSION_RATE)       // 비율 2 저장
-                .finalPrice(finalPrice)                    // 구매자 결제 금액
-                .sellerSettlementAmount(sellerSettlementAmount)  // 판매자 정산 금액
+                .commission(DEFAULT_COMMISSION_RATE)        // 수수료율 2% 저장
+                .finalPrice(finalPrice)                     // 구매자 최종 결제 금액
+                .sellerSettlementAmount(sellerSettlementAmount) // 판매자 정산 금액
                 .receiverName(req.getReceiverName())
                 .receiverPhone(req.getReceiverPhone())
                 .receiverZipcode(req.getReceiverZipcode())
@@ -72,8 +69,11 @@ public class OrderService {
                 .receiverAddressDetail(req.getReceiverAddressDetail())
                 .deliveryRequest(req.getDeliveryRequest())
                 .build();
-        order.markAsPaid();
-        productRepository.updateProductStatus(req.getProductId(), ProductStatus.SOLD);
+
+        order.markAsPaid();  // 주문 상태 → PAID, 결제 시각 기록
+        productRepository.updateProductStatus(req.getProductId(), ProductStatus.SOLD); // 상품 상태 → 판매완료
+
+     // productPrice, shippingFee는 Order 엔티티에 없으므로 Product 에서 직접 받아옴
         return OrderResponseDto.from(orderRepository.save(order), shippingFee, productPrice);
     }
 
@@ -83,11 +83,6 @@ public class OrderService {
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
         return OrderResponseDto.from(order, product.getShippingFee(), product.getPrice());
-    }
-
-    public long countSellerOrdersByStatus(String sellerId, String orderStatus) {
-        validateOrderStatus(orderStatus);
-        return orderRepository.countBySellerIdAndOrderStatus(sellerId, orderStatus);
     }
 
     @Transactional
@@ -130,24 +125,14 @@ public class OrderService {
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
         Product product = productRepository.findById(order.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + order.getProductId()));
-        // ⚠ 재조회가 반드시 필요함 (제거하면 안 됨)
-        // orderRepository.cancelOrder()는 네이티브 쿼리(@Modifying)로 DB를 직접 갱신하기 때문에
-        // 영속성 컨텍스트를 거치지 않음 → 위에서 조회한 order 객체는 여전히 취소 전 상태(PAID)를 들고 있음
-        // 따라서 변경된 최신 상태(orderStatus=CANCELLED, cancelledAt 등)를 응답으로 내려주려면 다시 조회해야 함
-        return OrderResponseDto.from(orderRepository.findById(orderId).get(), product.getShippingFee(), product.getPrice());
+        // DB를 직접 수정했기 때문에 변경된 값을 가져오려면 다시 조회해야 함
+        Order cancelledOrder = orderRepository.findById(orderId)
+                .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
+        return OrderResponseDto.from(cancelledOrder, product.getShippingFee(), product.getPrice());
     }
 
-    // 단순 증가 방식의 주문 ID 생성 (현재 저장된 주문 수 + 1)
     private String generateOrderId() {
         long next = orderRepository.count() + 1;
         return String.format("ORDER_%03d", next);
-    }
-
-    private void validateOrderStatus(String orderStatus) {
-        try {
-            OrderStatus.valueOf(orderStatus);
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException("유효하지 않은 주문 상태입니다: " + orderStatus);
-        }
     }
 }

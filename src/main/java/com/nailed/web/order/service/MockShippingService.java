@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 @Transactional
-// 실제 택배사 API 연동 없이, 운송장 형식 검증만으로 배송 단계를 흉내내는 모의(Mock) 구현체
 public class MockShippingService implements ShippingService {
     // 허용되는 택배사 코드 목록 (ShippingRequestDto.carrierCode 검증용)
     private static final Set<String> ALLOWED_CARRIERS = Set.of("CJ","LOGEN", "HANJIN", "KOREA_POST", "LOTTE");
@@ -39,10 +38,8 @@ public class MockShippingService implements ShippingService {
         }
         order.startShipping(carrierCode, trackingNumber);
         Order savedOrder = orderRepository.save(order);
-        
+        // 주문 상태 변경 시 판매자의 거래완료 건수 등이 바뀔 수 있으므로 등급을 재계산
         sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
-
-        
         Product product = productRepository.findById(savedOrder.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()));
         return OrderResponseDto.from(savedOrder, product.getShippingFee(), product.getPrice());
@@ -55,6 +52,7 @@ public class MockShippingService implements ShippingService {
         }
         order.markAsDelivered();
         Order savedOrder = orderRepository.save(order);
+        // 거래완료(DELIVERED) 건수가 늘어나므로 판매자 등급 재계산
         sellerGradeService.refreshSellerGrade(savedOrder.getSellerId());
         Product product = productRepository.findById(savedOrder.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 상품입니다. productId=" + savedOrder.getProductId()));

@@ -74,7 +74,7 @@ public enum ErrorCode {
     CANCEL_NOT_ALLOWED                  (HttpStatus.BAD_REQUEST,            "O009", "현재 상태에서는 취소할 수 없습니다."),
     PAYMENT_REFUND_FAILED               (HttpStatus.BAD_REQUEST,            "O010", "환불 처리가 정상적으로 완료되지 않았습니다."),
     INVALID_FINAL_PRICE                 (HttpStatus.BAD_REQUEST,            "O011", "최종 결제 금액이 일치하지 않습니다."),
-    LOCK_ACQUISITION_FAILED             (HttpStatus.CONFLICT,               "O012", "현재 다른 고객님이 결제를 진행 중인 상품입니다. 잠시 후 다시 시도해주세요!"),
+    LOCK_ACQUISITION_FAILED             (HttpStatus.CONFLICT,               "O012", "현재 다른 고객님이 결제를 진행 중인 상품입니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // D : Delivery (orders.carrier_code / tracking_number 로 통합)
@@ -103,7 +103,7 @@ public enum ErrorCode {
     INVALID_RATING                      (HttpStatus.BAD_REQUEST,            "V004", "별점은 1~5점 사이여야 합니다."),
 
     // ─────────────────────────────────────────────────────────────────
-    // W : Wishlist (wishlists 테이블)
+    // W : Wishlist (wishlist 테이블)
     // ─────────────────────────────────────────────────────────────────
     WISHLIST_ALREADY_EXISTS             (HttpStatus.CONFLICT,               "W001", "이미 찜한 상품입니다."),
     WISHLIST_NOT_FOUND                  (HttpStatus.NOT_FOUND,              "W002", "찜 목록에 없는 상품입니다.");
