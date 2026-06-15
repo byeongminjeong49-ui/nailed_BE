@@ -10,7 +10,7 @@ public class ReportResponse {
             String reasonCode,      // FRAUD / MISLEADING_INFO / PROHIBITED_ITEM / ETC
             String reasonLabel,     // 사기 / 상품 정보 허위/불일치 / 금지상품 / 기타
             String detail,
-            String reportStatus,    // APPROVED / REJECTED / DONE
+            String reportStatus,    // APPROVED=접수대기 / REJECTED=반려 / DONE=처리완료
             LocalDateTime createdAt
     ) {
         public static Detail from(Report report) {

@@ -1,5 +1,6 @@
 package com.nailed.web.admin.service;
 
+import com.nailed.common.enums.ProductStatus;
 import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.web.admin.dto.AdminDashboardResponse;
@@ -82,7 +83,8 @@ public class AdminDashboardService {
         Map<String, Long> inquiries = toValueMap(inquiryRepository.countInquiriesByPeriod(
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
         Map<String, Long> onSaleProducts = toValueMap(productRepository.countOnSaleProductsByPeriod(
-                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt(),
+                ProductStatus.ON_SALE.name()));
 
         List<AdminDashboardTrendResponse.TrendPoint> points = trendRange.labels().stream()
                 .map(label -> new AdminDashboardTrendResponse.TrendPoint(

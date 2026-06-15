@@ -305,10 +305,10 @@ public class ProductService {
         return toSummaryList(products);
     }
 
-    // ── 메인 카테고리 랜덤 10개 (상세 페이지 하단) ───────────
+    // ── 메인 카테고리 랜덤 N개 (기본값 10, 상세 페이지 하단) ──
 
     public List<ProductResponse.Summary> getRandomProducts(int size) {
-        List<Product> products = productRepository.findRandomProducts();
+        List<Product> products = productRepository.findRandomProducts(ProductStatus.ON_SALE.name());
         List<Product> sliced = products.size() > size ? products.subList(0, size) : products;
         return toSummaryList(sliced);
     }

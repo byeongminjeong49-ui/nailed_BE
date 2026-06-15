@@ -36,7 +36,7 @@ public class WishlistService {
 
     /**
      * 상품 상세에서 찜 버튼 클릭 시 호출
-     * - 중복 등록 차단 (W001)
+     * - 중복 등록 차단 (WISHLIST_ALREADY_EXISTS)
      * - products.wishlist_count +1 동기화
      */
     @Transactional
@@ -63,7 +63,7 @@ public class WishlistService {
 
     /**
      * 찜 토글 OFF 시 호출
-     * - 찜 내역 없으면 404 (W002)
+     * - 찜 내역 없으면 404 (WISHLIST_NOT_FOUND)
      * - products.wishlist_count -1 동기화 (0 미만 방지는 Product 메서드 내부)
      */
     @Transactional

@@ -69,8 +69,7 @@ public interface ReportRepository extends JpaRepository<Report, String> {
     @Query(value = """
             SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count
             FROM reports
-            WHERE report_status IN ('APPROVED', 'REJECTED', 'DONE')
-              AND created_at >= :startAt
+            WHERE created_at >= :startAt
               AND created_at < :endAt
             GROUP BY DATE_FORMAT(created_at, :dateFormat)
             """, nativeQuery = true)

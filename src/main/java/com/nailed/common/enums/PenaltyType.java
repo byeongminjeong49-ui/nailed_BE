@@ -17,8 +17,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum PenaltyType {
 
-    WARNING("경고", "경고 처분 (정지 일수 없음)"),
-    SUSPEND("정지", "기간 정지 (3/7/30일)"),
+    WARNING("경고", "경고 처분"),
+    SUSPEND("기간정지", "기간 정지 (3/7/30일)"),
     BAN("영구정지", "영구 차단");
 
     private final String label;

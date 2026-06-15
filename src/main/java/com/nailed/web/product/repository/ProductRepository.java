@@ -107,7 +107,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query(value = """
             SELECT DATE_FORMAT(created_at, :dateFormat) AS label, COUNT(*) AS count
             FROM products
-            WHERE product_status = 'ON_SALE'
+            WHERE product_status = :status
               AND deleted_at IS NULL
               AND created_at >= :startAt
               AND created_at < :endAt
@@ -116,7 +116,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     List<Object[]> countOnSaleProductsByPeriod(
             @Param("dateFormat") String dateFormat,
             @Param("startAt") LocalDateTime startAt,
-            @Param("endAt") LocalDateTime endAt);
+            @Param("endAt") LocalDateTime endAt,
+            @Param("status") String status);
 
     // 조회수 +1 (DB에서 직접 덧셈 → Lost Update 방지, 삭제 상품 제외)
     // 반환값: 실제 업데이트된 행 수 (0이면 존재하지 않거나 삭제된 상품)
@@ -197,14 +198,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // 5개 메인 카테고리(MENS/WOMENS/LUXURY/ACC/IT) ON_SALE 랜덤 최대 50개
     // LIMIT에 named parameter 불가(MySQL 제약) → 고정 50으로 뽑고 서비스에서 slice
     @Query(value = "SELECT * FROM products " +
-                   "WHERE product_status = 'ON_SALE' " +
+                   "WHERE product_status = :status " +
                    "AND category_id IN (" +
                    "    SELECT group_id FROM product_groups " +
                    "    WHERE code LIKE 'MENS%' OR code LIKE 'WOMENS%' " +
                    "    OR code LIKE 'LUXURY%' OR code LIKE 'ACC%' OR code LIKE 'IT%'" +
                    ") ORDER BY RAND() LIMIT 50",
            nativeQuery = true)
-    List<Product> findRandomProducts();
+    List<Product> findRandomProducts(@Param("status") String status);
 
     // 인기순 전용 쿼리 (조회수×1 + 찜수×3)
     @Query(value = "SELECT p FROM Product p " +
@@ -286,8 +287,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("brandName") String brandName,
             @Param("sellerKeyword") String sellerKeyword,
             Pageable pageable);
-    
- // 상품 상태 변경 (결제완료 → SOLD / 주문취소 → ON_SALE 복구)
+    // 상품 상태 변경 (결제완료 → SOLD / 주문취소 → ON_SALE 복구)
     @Modifying(clearAutomatically = true)
     @Transactional
     @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId = :productId")
