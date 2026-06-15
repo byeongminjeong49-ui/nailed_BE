@@ -32,9 +32,6 @@ import lombok.RequiredArgsConstructor;
 @Transactional(readOnly = true)
 public class AuthService {
 
-    // 개발 편의용 mock 비밀번호 접두사 (운영 환경 제거 권장)
-    private static final String MOCK_PASSWORD_PREFIX = "{mock}";
-
     // 혼동 문자(0, O, 1, I, l) 제외한 임시 비밀번호 문자셋
     private static final String TEMP_PASSWORD_CHARS =
             "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
@@ -84,7 +81,6 @@ public class AuthService {
     public AuthResponse.Signup signup(AuthRequest.Signup request) {
         String userid = normalizeUserid(request.userid());
 
-        // 관리자 사칭 키워드 검사
         validateNotAdminKeyword(userid);
         validateNotAdminKeyword(request.nickname());
         validateNotAdminKeyword(request.name());
@@ -97,7 +93,7 @@ public class AuthService {
         Member member = Member.builder()
                 .memberId(generateMemberId())
                 .userid(userid)
-                .passwordHash(passwordEncoder.encode(request.password())) // BCrypt 암호화 저장
+                .passwordHash(passwordEncoder.encode(request.password()))
                 .nickname(request.nickname())
                 .name(request.name())
                 .role("USER")
@@ -121,28 +117,24 @@ public class AuthService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        handleExpiredLoginRestriction(member, now); // 잠금·정지 기간 만료 시 자동 해제
-        validateMemberStatus(member);               // 탈퇴·정지·밴·잠금 상태 검사
-        resetExpiredLoginFailureWindow(member, now); // 30분 지난 실패 카운트 초기화
+        handleExpiredLoginRestriction(member, now);
+        validateMemberStatus(member);
+        resetExpiredLoginFailureWindow(member, now);
 
-        if (!matchesMockPassword(request.password(), member.getPasswordHash())) {
-            recordLoginFailure(member, now); // 실패 횟수 기록, 5회 시 자동 잠금
+        if (!verifyPassword(request.password(), member.getPasswordHash())) {
+            recordLoginFailure(member, now);
             throw new CustomException(ErrorCode.INVALID_LOGIN);
         }
 
         member.resetLoginFailures();
         member.increaseLoginCount();
 
-        // 토큰 발급
         JwtTokenProvider.AccessTokenInfo accessTokenInfo  = jwtTokenProvider.createAccessTokenInfo(member);
         JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);
 
-        // Refresh Token DB 저장 (로그아웃 시 NULL로 무효화)
         member.updateRefreshToken(refreshTokenInfo.refreshToken(), refreshTokenInfo.refreshTokenExpiresAt());
         memberRepository.save(member);
 
-        // Refresh Token → HttpOnly 쿠키 (JS 접근 불가 → XSS 방어)
-        // secure=false는 개발 환경용, 운영 시 true로 변경
         ResponseCookie cookie = ResponseCookie.from("refreshToken", refreshTokenInfo.refreshToken())
                 .httpOnly(true).sameSite("Lax").secure(false).path("/").maxAge(Duration.ofDays(7))
                 .build();
@@ -153,7 +145,6 @@ public class AuthService {
 
     // ── Access Token 재발급 ─────────────────────────────────────
 
-    /** Refresh Token(HttpOnly 쿠키)으로 새 Access Token 발급 */
     public AuthResponse.TokenRefresh refreshAccessToken(String refreshToken) {
         String normalized = normalizeToken(refreshToken);
         if (normalized.isBlank()) throw new CustomException(ErrorCode.INVALID_TOKEN);
@@ -161,17 +152,15 @@ public class AuthService {
         Member member = memberRepository.findByRefreshToken(normalized)
                 .orElseThrow(() -> new CustomException(ErrorCode.INVALID_TOKEN));
 
-        // DB 저장 토큰과 일치 여부 재확인 (다른 기기 로그아웃 시 불일치)
         if (!normalized.equals(member.getRefreshToken()))
             throw new CustomException(ErrorCode.INVALID_TOKEN);
 
-        // 만료 여부 확인
         if (member.getRefreshTokenExpiresAt() == null
                 || !member.getRefreshTokenExpiresAt().isAfter(LocalDateTime.now()))
             throw new CustomException(ErrorCode.TOKEN_EXPIRED);
 
-        validateRefreshTokenFormat(normalized); // JWT 서명 검증
-        validateMemberStatus(member);           // 정지·탈퇴 회원 재발급 불가
+        validateRefreshTokenFormat(normalized);
+        validateMemberStatus(member);
 
         return AuthResponse.TokenRefresh.from(member, jwtTokenProvider.createAccessTokenInfo(member));
     }
@@ -182,11 +171,9 @@ public class AuthService {
     public AuthResponse.SimpleResult logout(String refreshToken, HttpServletResponse response) {
         String normalized = normalizeToken(refreshToken);
         if (!normalized.isBlank()) {
-            // DB의 refresh_token을 NULL로 → 해당 토큰으로 재발급 불가
             memberRepository.findByRefreshToken(normalized).ifPresent(Member::clearRefreshToken);
         }
 
-        // 쿠키 즉시 만료 (maxAge=0)
         ResponseCookie deleteCookie = ResponseCookie.from("refreshToken", "")
                 .httpOnly(true).sameSite("Lax").secure(false).path("/").maxAge(0).build();
         response.setHeader(HttpHeaders.SET_COOKIE, deleteCookie.toString());
@@ -196,7 +183,6 @@ public class AuthService {
 
     // ── 임시 비밀번호 발급 ──────────────────────────────────────
 
-    /** 아이디로 회원 조회 후 임시 비밀번호 생성·저장 (운영 시 이메일 발송 필요) */
     @Transactional
     public AuthResponse.PasswordReset requestPasswordReset(AuthRequest.PasswordResetRequest request) {
         Member member = memberRepository.findByUserid(normalizeUserid(request.userid()))
@@ -210,7 +196,6 @@ public class AuthService {
 
     // ── 내부 헬퍼 ───────────────────────────────────────────────
 
-    /** memberId 생성: "M" + 타임스탬프, 중복 시 재시도 */
     private String generateMemberId() {
         String memberId;
         do { memberId = "M" + System.currentTimeMillis(); }
@@ -221,7 +206,6 @@ public class AuthService {
     private String normalizeUserid(String userid) { return userid == null ? "" : userid.trim(); }
     private String normalizeToken(String token)    { return token  == null ? "" : token.trim();  }
 
-    /** Refresh Token JWT 서명 검증 — 라이브러리 예외를 CustomException으로 변환 */
     private void validateRefreshTokenFormat(String refreshToken) {
         try {
             if (!jwtTokenProvider.validateRefreshToken(refreshToken))
@@ -231,7 +215,6 @@ public class AuthService {
         }
     }
 
-    /** SecureRandom으로 예측 불가능한 임시 비밀번호 생성 */
     private String generateTemporaryPassword() {
         StringBuilder sb = new StringBuilder(TEMP_PASSWORD_LENGTH);
         for (int i = 0; i < TEMP_PASSWORD_LENGTH; i++)
@@ -239,22 +222,11 @@ public class AuthService {
         return sb.toString();
     }
 
-    /**
-     * 비밀번호 검증 3가지 방식
-     *   1) BCrypt 해시 비교 (정상)
-     *   2) {mock} 접두사 평문 비교 (개발용)
-     *   3) 평문 직접 비교 (레거시 데이터 대응)
-     */
-    private boolean matchesMockPassword(String rawPassword, String storedPassword) {
-        return passwordEncoder.matches(rawPassword, storedPassword)
-                || (MOCK_PASSWORD_PREFIX + rawPassword).equals(storedPassword)
-                || rawPassword.equals(storedPassword);
+    /** BCrypt 해시 비교만 수행 */
+    private boolean verifyPassword(String rawPassword, String storedPassword) {
+        return passwordEncoder.matches(rawPassword, storedPassword);
     }
 
-    /**
-     * 잠금·정지 기간 만료 시 자동 해제
-     * lockedUntil이 과거 → unlock(), 미래 → 예외 발생
-     */
     private void handleExpiredLoginRestriction(Member member, LocalDateTime now) {
         String status = member.getMemberStatus();
         if (!"LOCKED".equals(status) && !"SUSPEND".equals(status) && !"SUSPENDED".equals(status)) return;
@@ -262,34 +234,25 @@ public class AuthService {
         LocalDateTime lockedUntil = member.getLockedUntil();
 
         if (lockedUntil == null && !"LOCKED".equals(status))
-            throw new CustomException(ErrorCode.MEMBER_SUSPENDED); // 영구 정지
+            throw new CustomException(ErrorCode.MEMBER_SUSPENDED);
 
         if (lockedUntil != null && lockedUntil.isAfter(now)) {
             throw new CustomException("LOCKED".equals(status)
-                    ? ErrorCode.MEMBER_LOCKED : ErrorCode.MEMBER_SUSPENDED); // 아직 제한 중
+                    ? ErrorCode.MEMBER_LOCKED : ErrorCode.MEMBER_SUSPENDED);
         }
 
-        member.unlock(); // 기간 만료 → ACTIVE 복구
+        member.unlock();
     }
 
-    /**
-     * 실패 카운트 윈도우 만료 시 초기화
-     * 예) 10:00 첫 실패 → 10:35에 재시도 시 30분 경과 → 카운트 0으로 리셋
-     */
     private void resetExpiredLoginFailureWindow(Member member, LocalDateTime now) {
         LocalDateTime startedAt = member.getLoginFailStartedAt();
         if (startedAt != null && !startedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now))
             member.resetLoginFailures();
     }
 
-    /**
-     * 로그인 실패 기록
-     * 5회 도달 시 10분 잠금, 미만이면 카운트만 증가
-     */
     private void recordLoginFailure(Member member, LocalDateTime now) {
         LocalDateTime startedAt = member.getLoginFailStartedAt();
 
-        // 윈도우 없거나 만료 → 새 윈도우 시작
         if (startedAt == null || !startedAt.plusMinutes(LOGIN_FAIL_WINDOW_MINUTES).isAfter(now)) {
             member.recordLoginFailure(now, 1);
             return;
@@ -297,14 +260,13 @@ public class AuthService {
 
         int failCount = member.getLoginFailCount() + 1;
         if (failCount >= LOGIN_FAIL_LIMIT) {
-            member.lockUntil(now.plusMinutes(LOGIN_LOCK_MINUTES)); // 10분 잠금
+            member.lockUntil(now.plusMinutes(LOGIN_LOCK_MINUTES));
             throw new CustomException(ErrorCode.MEMBER_LOCKED);
         }
 
         member.recordLoginFailure(startedAt, failCount);
     }
 
-    /** 계정 상태 검증 — 탈퇴·정지·밴·잠금 시 예외 발생 */
     private void validateMemberStatus(Member member) {
         String status = member.getMemberStatus();
         if ("WITHDRAWN".equals(status))                              throw new CustomException(ErrorCode.MEMBER_WITHDRAWN);
@@ -313,10 +275,6 @@ public class AuthService {
         if ("LOCKED".equals(status))                                 throw new CustomException(ErrorCode.MEMBER_LOCKED);
     }
 
-    /**
-     * 관리자 예약 키워드 포함 여부 검사
-     * 공백 제거 + 소문자 변환 후 비교 (대소문자·공백으로 우회 방지)
-     */
     private void validateNotAdminKeyword(String value) {
         if (value == null) return;
         String normalized = value.toLowerCase().replaceAll("\\s", "");
