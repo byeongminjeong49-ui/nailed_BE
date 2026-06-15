@@ -6,7 +6,7 @@ import lombok.RequiredArgsConstructor;
 /**
  * 상품 판매 상태
  * DB: products.product_status VARCHAR(20) DEFAULT 'ON_SALE'
- * 주석값: ON_SALE/RESERVED/SOLD/DELETED
+ * enum 값: ON_SALE/SOLD/DELETED
  */
 @Getter
 @RequiredArgsConstructor

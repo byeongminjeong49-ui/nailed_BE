@@ -55,8 +55,8 @@ public class WishlistService {
                 .build();
         wishlistRepository.save(wishlist);
 
-        // 상품 찜수 +1
-        product.increaseWishlistCount();
+        // 상품 찜수 +1 (DB 원자적 증가 → 동시 찜 Lost Update 방지)
+        productRepository.incrementWishlistCount(productId);
     }
 
     // ── 찜 취소 ───────────────────────────────────────────────
@@ -72,12 +72,10 @@ public class WishlistService {
                 .findByMemberMemberIdAndProductProductId(memberId, productId)
                 .orElseThrow(() -> new CustomException(ErrorCode.WISHLIST_NOT_FOUND));
 
-        // delete 전에 참조를 꺼내둬야 영속성 컨텍스트 분리 후에도 안전하게 접근 가능
-        Product product = wishlist.getProduct();
         wishlistRepository.delete(wishlist);
 
-        // 상품 찜수 -1 (상품이 이미 DELETED여도 카운트는 맞춰둠)
-        product.decreaseWishlistCount();
+        // 상품 찜수 -1 (DB 원자적 감소, 상품이 이미 DELETED여도 카운트는 맞춰둠)
+        productRepository.decrementWishlistCount(productId);
     }
 
     // ── 위시리스트 ───────────────────────────────────────────

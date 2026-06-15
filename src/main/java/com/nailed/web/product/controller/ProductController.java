@@ -9,6 +9,7 @@ import com.nailed.common.response.PageResponse;
 import com.nailed.common.util.SecurityUtil;
 import com.nailed.web.product.dto.ProductRequest;
 import com.nailed.web.product.dto.ProductResponse;
+import com.nailed.web.product.dto.ProductSearchCondition;
 import com.nailed.web.product.entity.ProductGroup;
 import com.nailed.web.product.service.ProductService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -38,9 +39,7 @@ public class ProductController {
     public record ConditionDto(String code, String label) {}
     public record SizeDto(String value, String sizeType) {}
 
-    @GetMapping("/categories")
-    public ResponseEntity<ApiResponse<List<CategoryDto>>> getCategories() {
-        List<ProductGroup> groups = productService.getCategories();
+    private List<CategoryDto> toGroupDtoList(List<ProductGroup> groups) {
         List<CategoryDto> result = new ArrayList<>();
         for (ProductGroup g : groups) {
             result.add(new CategoryDto(
@@ -51,7 +50,12 @@ public class ProductController {
                     g.getSizeType()
             ));
         }
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return result;
+    }
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<CategoryDto>>> getCategories() {
+        return ResponseEntity.ok(ApiResponse.success(toGroupDtoList(productService.getCategories())));
     }
 
     @GetMapping("/conditions")
@@ -76,18 +80,7 @@ public class ProductController {
 
     @GetMapping("/brands")
     public ResponseEntity<ApiResponse<List<CategoryDto>>> getBrands() {
-        List<ProductGroup> groups = productService.getBrandsIncludingLuxury();
-        List<CategoryDto> result = new ArrayList<>();
-        for (ProductGroup g : groups) {
-            result.add(new CategoryDto(
-                    g.getGroupId(),
-                    g.getCode(),
-                    g.getName(),
-                    g.getParent() != null ? g.getParent().getCode() : null,
-                    g.getSizeType()
-            ));
-        }
-        return ResponseEntity.ok(ApiResponse.success(result));
+        return ResponseEntity.ok(ApiResponse.success(toGroupDtoList(productService.getBrandsIncludingLuxury())));
     }
 
     // ── 이미지 업로드 (로그인 필요) ───────────────────────────
@@ -103,7 +96,7 @@ public class ProductController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<Long>> register(
-            @Valid @RequestBody ProductRequest.Create request) {
+            @Valid @RequestBody ProductRequest.Form request) {
         String sellerId = SecurityUtil.getCurrentMemberId();
         Long productId = productService.register(sellerId, request);
         return ResponseEntity.ok(ApiResponse.success(productId));
@@ -115,25 +108,12 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> getList(
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String categoryCode,
-            @RequestParam(required = false) Integer minPrice,
-            @RequestParam(required = false) Integer maxPrice,
-            @RequestParam(required = false) String gender,
-            @RequestParam(required = false, defaultValue = "false") boolean excludeSold,
-            @RequestParam(required = false) String productSize,
-            @RequestParam(required = false) String conditionCode,
-            @RequestParam(required = false, defaultValue = "latest") String sortBy,
+            @ModelAttribute ProductSearchCondition cond,
             @PageableDefault(size = 15, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        if (categoryCode != null && !categoryCode.isBlank()) {
-            return ResponseEntity.ok(ApiResponse.success(productService.getListByCode(
-                    categoryCode, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
-        }
-        if (categoryId == null) {
+        if (cond.getCategoryId() == null && (cond.getCategoryCode() == null || cond.getCategoryCode().isBlank())) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        return ResponseEntity.ok(ApiResponse.success(productService.getList(
-                categoryId, minPrice, maxPrice, gender, excludeSold, productSize, conditionCode, sortBy, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(productService.getList(cond, pageable)));
     }
 
     // ── 홈 추천: 최신 상품 6개 (비로그인 가능) ────────────────
@@ -162,20 +142,9 @@ public class ProductController {
 
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<PageResponse<ProductResponse.Summary>>> search(
-            @RequestParam(required = false) Long categoryId,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Integer minPrice,
-            @RequestParam(required = false) Integer maxPrice,
-            @RequestParam(required = false) String conditionCode,
-            @RequestParam(required = false) String productSize,
-            @RequestParam(required = false) String gender,
-            @RequestParam(required = false, defaultValue = "false") boolean excludeSold,
-            @RequestParam(required = false, defaultValue = "latest") String sortBy,
+            @ModelAttribute ProductSearchCondition cond,
             @PageableDefault(size = 15) Pageable pageable) {
-
-        return ResponseEntity.ok(ApiResponse.success(
-                productService.search(categoryId, keyword, minPrice, maxPrice, conditionCode, productSize,
-                        gender, excludeSold, sortBy, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(productService.search(cond, pageable)));
     }
 
     // ── 상품 클릭 → 상세 페이지 진입 시 호출 (비로그인 가능) ──
@@ -210,7 +179,7 @@ public class ProductController {
     @PutMapping("/{productId}")
     public ResponseEntity<ApiResponse<Void>> update(
             @PathVariable Long productId,
-            @Valid @RequestBody ProductRequest.Update request) {
+            @Valid @RequestBody ProductRequest.Form request) {
         String sellerId = SecurityUtil.getCurrentMemberId();
         productService.update(productId, sellerId, request);
         return ResponseEntity.ok(ApiResponse.success());

@@ -17,7 +17,7 @@ public class ProductResponse {
             String conditionLabel,      // 새제품 / 거의새것 / 상태좋음 ...
             int wishlistCount,
             String thumbnailUrl,        // sort_order=0 이미지 URL (null 가능)
-            String productStatus,       // ON_SALE / RESERVED / SOLD
+            String productStatus,       // ON_SALE / SOLD (목록에서 DELETED 제외)
             LocalDateTime createdAt,
             String brandCode,           // BRAND_NIKE / LUXURY_GUCCI 등 (브랜드 없으면 null)
             String brandName,           // DB 표시명 (null 가능)

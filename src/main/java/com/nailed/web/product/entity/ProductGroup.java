@@ -3,6 +3,7 @@ package com.nailed.web.product.entity;
 import com.nailed.common.enums.GroupType;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
  * - DB 스키마에 created_at / updated_at 없음 → BaseEntity 미상속
  */
 @Entity
+@BatchSize(size = 30)
 @Table(name = "product_groups")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)

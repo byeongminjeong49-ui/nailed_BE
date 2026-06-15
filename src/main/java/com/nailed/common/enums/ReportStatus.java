@@ -6,7 +6,8 @@ import lombok.RequiredArgsConstructor;
 /**
  * 신고 처리 상태
  * DB: reports.report_status VARCHAR(20) DEFAULT 'PENDING'
- * 주석값: PENDING/APPROVED/REJECTED/DONE
+ *   - 단, 엔티티 기본값이 APPROVED라 신규 신고는 APPROVED(접수됨)로 저장됨 → PENDING 미사용
+ * enum 값: APPROVED/REJECTED/DONE
  */
 @Getter
 @RequiredArgsConstructor

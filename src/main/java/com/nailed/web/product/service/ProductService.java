@@ -13,6 +13,7 @@ import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.order.repository.OrderRepository;
 import com.nailed.web.product.dto.ProductRequest;
 import com.nailed.web.product.dto.ProductResponse;
+import com.nailed.web.product.dto.ProductSearchCondition;
 import com.nailed.web.product.entity.Product;
 import com.nailed.web.product.entity.ProductGroup;
 import com.nailed.web.product.entity.ProductImage;
@@ -41,7 +42,6 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -51,6 +51,8 @@ public class ProductService {
 
     private static final String MENS_CATEGORY_CODE = "MENS";
     private static final String WOMENS_CATEGORY_CODE = "WOMENS";
+    private static final java.util.regex.Pattern PRD_NAME_PATTERN =
+            java.util.regex.Pattern.compile("PRD_(\\d+)_(\\d+)\\..+");
 
     private final ProductRepository productRepository;
     private final ProductGroupRepository productGroupRepository;
@@ -108,7 +110,7 @@ public class ProductService {
     // ── 상품 등록 ─────────────────────────────────────────────
 
     @Transactional
-    public Long register(String sellerId, ProductRequest.Create req) {
+    public Long register(String sellerId, ProductRequest.Form req) {
         Member seller = findMember(sellerId);
         ProductGroup category = findCategory(req.categoryId());
         ProductGroup brand = req.brandId() != null ? findBrand(req.brandId()) : null;
@@ -149,7 +151,8 @@ public class ProductService {
     // ── 상품 카드 클릭 → 상세 페이지 데이터 조회 ─────────────
 
     public ProductResponse.Detail getDetail(Long productId, String memberId) {
-        Product product = findActiveProduct(productId);
+        Product product = productRepository.findByIdWithFetch(productId, ProductStatus.DELETED)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
         List<ProductImage> imgList = productImageRepository.findByProductProductIdOrderBySortOrderAsc(productId);
         List<String> imageUrls = new ArrayList<>();
@@ -187,62 +190,33 @@ public class ProductService {
 
     // ── 카테고리별 목록 ───────────────────────────────────────
 
-    public PageResponse<ProductResponse.Summary> getList(Long categoryId,
-                                                          Integer minPrice, Integer maxPrice,
-                                                          String gender, boolean excludeSold,
-                                                          String productSize, String conditionCode,
-                                                          String sortBy, Pageable pageable) {
-        ProductCondition condition = parseCondition(conditionCode);
-        String genderCodePrefix = resolveGenderCategoryCode(gender);
-        Page<Product> page = getCategoryFilteredPage(categoryId, null, minPrice, maxPrice,
-                genderCodePrefix, excludeSold, productSize, condition, sortBy, pageable);
-        return toSummaryPage(page);
-    }
-
-    // ── 카테고리 코드 prefix 목록 (MENS → MENS 하위 전체) ────
-
-    public PageResponse<ProductResponse.Summary> getListByCode(String categoryCode,
-                                                               Integer minPrice, Integer maxPrice,
-                                                               String gender, boolean excludeSold,
-                                                               String productSize, String conditionCode,
-                                                               String sortBy, Pageable pageable) {
-        ProductCondition condition = parseCondition(conditionCode);
-        String genderCodePrefix = resolveGenderCategoryCode(gender);
-        Page<Product> page = getCategoryFilteredPage(null, categoryCode, minPrice, maxPrice,
-                genderCodePrefix, excludeSold, productSize, condition, sortBy, pageable);
+    public PageResponse<ProductResponse.Summary> getList(ProductSearchCondition cond, Pageable pageable) {
+        ProductCondition condition = parseCondition(cond.getConditionCode());
+        String genderCodePrefix = resolveGenderCategoryCode(cond.getGender());
+        Page<Product> page = getCategoryFilteredPage(cond.getCategoryId(), cond.getCategoryCode(),
+                cond.getMinPrice(), cond.getMaxPrice(), genderCodePrefix, cond.isExcludeSold(),
+                cond.getProductSize(), condition, cond.getSortBy(), pageable);
         return toSummaryPage(page);
     }
 
     // ── 검색 + 다중 필터 ──────────────────────────────────────
 
-    public PageResponse<ProductResponse.Summary> search(Long categoryId, String keyword,
-                                                        Integer minPrice, Integer maxPrice,
-                                                        String conditionCode, String productSize,
-                                                        String gender, boolean excludeSold,
-                                                        String sortBy, Pageable pageable) {
-        ProductCondition condition = parseCondition(conditionCode);
-        String normalizedKeyword = normalizeKeyword(keyword);
-        String categoryCodePrefix = resolveGenderCategoryCode(gender);
+    public PageResponse<ProductResponse.Summary> search(ProductSearchCondition cond, Pageable pageable) {
+        ProductCondition condition = parseCondition(cond.getConditionCode());
+        String normalizedKeyword = normalizeKeyword(cond.getKeyword());
+        String categoryCodePrefix = resolveGenderCategoryCode(cond.getGender());
 
         Page<Product> page;
-        if ("popular".equals(sortBy)) {
+        if ("popular".equals(cond.getSortBy())) {
             Pageable unsorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize());
             page = productRepository.searchOrderByPopular(
-                    ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
-                    normalizedKeyword, minPrice, maxPrice, condition, productSize, unsorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, cond.isExcludeSold(), cond.getCategoryId(), categoryCodePrefix,
+                    normalizedKeyword, cond.getMinPrice(), cond.getMaxPrice(), condition, cond.getProductSize(), unsorted);
         } else {
-            Sort sort;
-            if ("price_asc".equals(sortBy)) {
-                sort = Sort.by("price").ascending();
-            } else if ("price_desc".equals(sortBy)) {
-                sort = Sort.by("price").descending();
-            } else {
-                sort = Sort.by("createdAt").descending();
-            }
-            Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+            Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), resolveSort(cond.getSortBy()));
             page = productRepository.search(
-                    ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
-                    normalizedKeyword, minPrice, maxPrice, condition, productSize, sorted);
+                    ProductStatus.ON_SALE, ProductStatus.SOLD, cond.isExcludeSold(), cond.getCategoryId(), categoryCodePrefix,
+                    normalizedKeyword, cond.getMinPrice(), cond.getMaxPrice(), condition, cond.getProductSize(), sorted);
         }
 
         return toSummaryPage(page);
@@ -262,18 +236,16 @@ public class ProductService {
                     genderCodePrefix, minPrice, maxPrice, condition, productSize, unsorted);
         }
 
-        Sort sort;
-        if ("price_asc".equals(sortBy)) {
-            sort = Sort.by("price").ascending();
-        } else if ("price_desc".equals(sortBy)) {
-            sort = Sort.by("price").descending();
-        } else {
-            sort = Sort.by("createdAt").descending();
-        }
-        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), resolveSort(sortBy));
         return productRepository.findCategoryProducts(
                 ProductStatus.ON_SALE, ProductStatus.SOLD, excludeSold, categoryId, categoryCodePrefix,
                 genderCodePrefix, minPrice, maxPrice, condition, productSize, sorted);
+    }
+
+    private Sort resolveSort(String sortBy) {
+        if ("price_asc".equals(sortBy)) return Sort.by("price").ascending();
+        if ("price_desc".equals(sortBy)) return Sort.by("price").descending();
+        return Sort.by("createdAt").descending();
     }
 
     private ProductCondition parseCondition(String conditionCode) {
@@ -344,7 +316,7 @@ public class ProductService {
     // ── 상품 수정 ─────────────────────────────────────────────
 
     @Transactional
-    public void update(Long productId, String sellerId, ProductRequest.Update req) {
+    public void update(Long productId, String sellerId, ProductRequest.Form req) {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
 
@@ -371,7 +343,7 @@ public class ProductService {
         Product product = findActiveProduct(productId);
         validateOwner(product, sellerId);
 
-        // 진행중 거래가 있으면 삭제 불가 (REQUESTED~DELIVERED 상태)
+        // 진행중 거래가 있으면 삭제 불가 (REQUESTED / PAID / SHIPPING 상태)
         if (orderRepository.existsByProductIdAndOrderStatusIn(
                 productId, List.of("REQUESTED", "PAID", "SHIPPING"))) {
             throw new CustomException(ErrorCode.PRODUCT_HAS_ACTIVE_ORDER);
@@ -409,12 +381,10 @@ public class ProductService {
     // ── 사이즈 검증 ──────────────────────────────────────────
 
     private void validateSize(String size, ProductGroup category) {
-        String code = category.getCode();
-        boolean isShoe = code.contains("_SHOES_");
-        boolean isClothing = code.contains("_TOP_") || code.contains("_OUTER_")
-                || code.contains("_BOTTOM_") || code.contains("_SKIRT_") || code.contains("_DRESS_");
+        String sizeType = category.getSizeType();
+        boolean isShoe = "SHOES".equals(sizeType);
+        boolean isClothing = "CLOTHING".equals(sizeType);
 
-        // 신발·의류 외 기타 카테고리(주얼리, IT기기 등)는 사이즈 형식 검증 없음
         if (!isShoe && !isClothing) return;
 
         SizeCode sizeCode = SizeCode.fromValue(size);
@@ -463,15 +433,12 @@ public class ProductService {
 
     /** 판매자 프로필 구성 */
     private ProductResponse.SellerInfo buildSellerInfo(Member seller) {
-        long reviewCount = reviewRepository.countByOrderSellerId(seller.getMemberId());
-        Double avgRating = reviewRepository
-                .findAverageRatingBySellerId(seller.getMemberId())
+        Object[] stats = reviewRepository.findReviewStatsBySellerId(seller.getMemberId());
+        long reviewCount = ((Number) stats[0]).longValue();
+        Double avgRating = stats[1] != null ? ((Number) stats[1]).doubleValue() : null;
+        String profileImageUrl = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId())
+                .filter(url -> !url.isBlank())
                 .orElse(null);
-        Optional<String> profileImageOpt = memberRepository.findProfileImageUrlByMemberId(seller.getMemberId());
-        String profileImageUrl = null;
-        if (profileImageOpt.isPresent() && !profileImageOpt.get().isBlank()) {
-            profileImageUrl = profileImageOpt.get();
-        }
 
         return new ProductResponse.SellerInfo(
                 seller.getMemberId(),
@@ -520,14 +487,11 @@ public class ProductService {
         for (ProductImage img : existingImages) {
             if (!img.getImageUrl().startsWith("/images/products/")) continue;
             String name = img.getImageUrl().substring(img.getImageUrl().lastIndexOf('/') + 1);
-            String[] parts = name.split("[_.]");   // PRD_{시퀀스}_{순번}.확장자
-            try {
-                int idx = Integer.parseInt(parts[parts.length - 2]);
+            java.util.regex.Matcher m = PRD_NAME_PATTERN.matcher(name);
+            if (m.matches()) {
+                int idx = Integer.parseInt(m.group(2));
                 if (idx > maxIndex) maxIndex = idx;
-                // 대표 이미지(sort_order 오름차순 첫 파일)의 시퀀스 번호를 상품 공통 prefix로 사용
-                if (prdNumber == null) prdNumber = Integer.parseInt(parts[1]);
-            } catch (Exception e) {
-                // ignore malformed filename
+                if (prdNumber == null) prdNumber = Integer.parseInt(m.group(1));
             }
         }
 
@@ -579,22 +543,22 @@ public class ProductService {
         saveImages(product, newUrls);
     }
 
-    private PageResponse<ProductResponse.Summary> toSummaryPage(Page<Product> page) {
-        List<Long> productIds = new ArrayList<>();
-        for (Product p : page.getContent()) {
-            productIds.add(p.getProductId());
+    private Map<Long, String> buildThumbnailMap(List<Product> products) {
+        List<Long> ids = new ArrayList<>();
+        for (Product p : products) {
+            ids.add(p.getProductId());
         }
-        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
+        return productImageRepository.buildThumbnailMap(ids);
+    }
+
+    private PageResponse<ProductResponse.Summary> toSummaryPage(Page<Product> page) {
+        Map<Long, String> thumbnailMap = buildThumbnailMap(page.getContent());
         return PageResponse.of(page.map(p ->
                 ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId()))));
     }
 
     private List<ProductResponse.Summary> toSummaryList(List<Product> products) {
-        List<Long> productIds = new ArrayList<>();
-        for (Product p : products) {
-            productIds.add(p.getProductId());
-        }
-        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
+        Map<Long, String> thumbnailMap = buildThumbnailMap(products);
         List<ProductResponse.Summary> result = new ArrayList<>();
         for (Product p : products) {
             result.add(ProductResponse.Summary.from(p, thumbnailMap.get(p.getProductId())));

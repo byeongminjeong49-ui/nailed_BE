@@ -8,7 +8,6 @@ import com.nailed.web.member.repository.MemberRepository;
 import com.nailed.web.order.entity.Order;
 import com.nailed.web.order.repository.OrderRepository;
 import com.nailed.web.product.entity.Product;
-import com.nailed.web.product.entity.ProductImage;
 import com.nailed.web.product.repository.ProductImageRepository;
 import com.nailed.web.product.repository.ProductRepository;
 import com.nailed.web.review.dto.ReviewRequest;
@@ -25,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -69,8 +67,13 @@ public class ReviewService {
                 .content(req.content())
                 .build();
 
-        // write는 단건이므로 단건 변환 메서드 사용
-        return toDetail(reviewRepository.save(review));
+        Review saved = reviewRepository.save(review);
+
+        // 단건도 배치 변환 로직을 그대로 재사용 (1건짜리 맵 구성)
+        List<Long> productIds = collectProductIds(List.of(saved));
+        Map<Long, Product> productMap = loadProductMap(productIds);
+        Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
+        return toDetail(saved, productMap, thumbnailMap);
     }
 
     /**
@@ -83,28 +86,15 @@ public class ReviewService {
             throw new CustomException(ErrorCode.MEMBER_NOT_FOUND);
         }
 
-        Double averageRating = reviewRepository
-                .findAverageRatingBySellerId(sellerId)
-                .orElse(null);
+        Object[] stats = reviewRepository.findReviewStatsBySellerId(sellerId);
+        Double averageRating = stats[1] != null ? ((Number) stats[1]).doubleValue() : null;
 
         Page<Review> page = reviewRepository
                 .findSellerReviews(sellerId, pageable);
 
-        // 상품 ID 일괄 수집 → 상품 정보 + 썸네일 배치 조회 (N+1 방지)
-        List<Long> productIds = new ArrayList<>();
-        for (Review r : page.getContent()) {
-            if (r.getOrder().getProductId() != null) {
-                productIds.add(r.getOrder().getProductId());
-            }
-        }
-
-        Map<Long, Product> productMap = new HashMap<>();
-        if (!productIds.isEmpty()) {
-            List<Product> products = productRepository.findAllById(productIds);
-            for (Product p : products) {
-                productMap.put(p.getProductId(), p);
-            }
-        }
+        // 상품 정보 + 썸네일 배치 조회 (N+1 방지)
+        List<Long> productIds = collectProductIds(page.getContent());
+        Map<Long, Product> productMap = loadProductMap(productIds);
         Map<Long, String> thumbnailMap = productImageRepository.buildThumbnailMap(productIds);
 
         Page<ReviewResponse.Detail> detailPage = page.map(r ->
@@ -113,48 +103,32 @@ public class ReviewService {
         return new ReviewResponse.SellerReviews(averageRating, PageResponse.of(detailPage));
     }
 
-    /**
-     * Review → Detail DTO 변환 (단건용, write 직후 호출)
-     * - 상품 1개만 조회하므로 배치 없이 직접 조회
-     */
-    private ReviewResponse.Detail toDetail(Review review) {
-        Long productId = review.getOrder().getProductId();
-
-        String productTitle = null;
-        Integer price = null;
-        String productImageUrl = null;
-
-        if (productId != null) {
-            Optional<Product> productOpt = productRepository.findById(productId);
-            if (productOpt.isPresent()) {
-                Product product = productOpt.get();
-                productTitle = product.getTitle();
-                price = product.getPrice();
-            }
-
-            List<ProductImage> images = productImageRepository
-                    .findThumbnailsByProductIds(List.of(productId));
-            if (!images.isEmpty()) {
-                productImageUrl = images.get(0).getImageUrl();
+    /** 리뷰 목록에서 상품 ID 수집 (productId 없는 주문은 제외) */
+    private List<Long> collectProductIds(List<Review> reviews) {
+        List<Long> productIds = new ArrayList<>();
+        for (Review r : reviews) {
+            Long productId = r.getOrder().getProductId();
+            if (productId != null) {
+                productIds.add(productId);
             }
         }
+        return productIds;
+    }
 
-        return new ReviewResponse.Detail(
-                review.getReviewId(),
-                review.getOrder().getOrderId(),
-                review.getBuyer().getNickname(),
-                review.getRating(),
-                review.getContent(),
-                review.getCreatedAt(),
-                productTitle,
-                productImageUrl,
-                price
-        );
+    /** productId → Product 맵 배치 조회 */
+    private Map<Long, Product> loadProductMap(List<Long> productIds) {
+        Map<Long, Product> productMap = new HashMap<>();
+        if (!productIds.isEmpty()) {
+            for (Product p : productRepository.findAllById(productIds)) {
+                productMap.put(p.getProductId(), p);
+            }
+        }
+        return productMap;
     }
 
     /**
-     * Review → Detail DTO 변환 (배치용, 미리 조회한 맵 활용)
-     * - getSellerReviews에서 페이지 전체를 한 번에 변환할 때 사용
+     * Review → Detail DTO 변환 (미리 조회한 맵 활용)
+     * - write(단건) / getSellerReviews(목록) 양쪽에서 공통 사용
      * - 상품 조회가 맵 참조로 대체되므로 N+1 쿼리 없음
      */
     private ReviewResponse.Detail toDetail(Review review,

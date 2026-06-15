@@ -25,8 +25,18 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("select p from Product p where p.productId = :productId")
     Optional<Product> findByIdWithLock(@Param("productId") Long productId);
 
-    // 삭제된 상품 제외 단건 조회 (상세 페이지)
+    // 삭제된 상품 제외 단건 조회 (수정/삭제/상태변경 등 소유자 액션·찜 등록용)
     Optional<Product> findByProductIdAndProductStatusNot(Long productId, ProductStatus status);
+
+    // 상세 페이지 전용 - seller/category 계층/brand 한 번에 fetch
+    @Query("SELECT p FROM Product p " +
+           "JOIN FETCH p.seller " +
+           "JOIN FETCH p.category c " +
+           "LEFT JOIN FETCH c.parent cp " +
+           "LEFT JOIN FETCH cp.parent " +
+           "LEFT JOIN FETCH p.brand " +
+           "WHERE p.productId = :id AND p.productStatus != :deleted")
+    Optional<Product> findByIdWithFetch(@Param("id") Long id, @Param("deleted") ProductStatus deleted);
 
     @Query(value = "SELECT p FROM Product p " +
                    "LEFT JOIN p.category c " +
@@ -116,6 +126,21 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
            "WHERE p.productId = :productId AND p.productStatus != :deleted")
     int incrementViewCount(@Param("productId") Long productId,
                            @Param("deleted") ProductStatus deleted);
+
+    // 찜수 +1 (DB에서 직접 덧셈 → 동시 찜 Lost Update 방지)
+    // flushAutomatically: bulk UPDATE 전에 pending 변경(찜 INSERT 등)을 먼저 DB 반영
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.wishlistCount = p.wishlistCount + 1 WHERE p.productId = :productId")
+    int incrementWishlistCount(@Param("productId") Long productId);
+
+    // 찜수 -1 (0 미만 방지 가드 유지, 동시 찜취소 Lost Update 방지)
+    // flushAutomatically: clear 전에 pending 찜 DELETE를 먼저 DB 반영 (DELETE 유실 방지)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.wishlistCount = p.wishlistCount - 1 " +
+           "WHERE p.productId = :productId AND p.wishlistCount > 0")
+    int decrementWishlistCount(@Param("productId") Long productId);
 
     // 판매자의 다른 상품 (현재 상품 제외, 최신순)
     @Query("SELECT p FROM Product p WHERE p.seller.memberId = :sellerId AND p.productId != :excludeId AND p.productStatus != :deleted ORDER BY p.createdAt DESC")
