@@ -48,9 +48,11 @@ public class OrderService {
             throw new CustomException(ErrorCode.PRODUCT_ALREADY_SOLD);
         }
         // 수수료 = (상품가 + 배송비) × 수수료율, 정산금액 = 최종 결제금액 - 수수료
+        // 수수료는 10원 단위로 반올림하여 계산
         int productPrice        = product.getPrice();
         int shippingFee         = product.getShippingFee();
-        int commissionAmount    = ((productPrice + shippingFee) * DEFAULT_COMMISSION_RATE) / 100;
+        double rawCommission    = (productPrice + shippingFee) * DEFAULT_COMMISSION_RATE / 100.0;
+        int commissionAmount    = (int) (Math.round(rawCommission / 10.0) * 10);
         int finalPrice          = productPrice + shippingFee + commissionAmount;
         int sellerSettlementAmount = finalPrice - commissionAmount;
 
