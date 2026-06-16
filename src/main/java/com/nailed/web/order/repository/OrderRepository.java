@@ -77,6 +77,22 @@ public interface OrderRepository extends JpaRepository<Order, String> {
             @Param("startAt") LocalDateTime startAt,
             @Param("endAt") LocalDateTime endAt);
 
+    // 관리자 대시보드용 기간별 거래액(최종 결제금액) 합계 (주문접수 이후 상태만 집계)
+    @Query(value = """
+            SELECT DATE_FORMAT(requested_at, :dateFormat) AS label,
+                   COALESCE(SUM(final_price), 0) AS transactionAmount
+            FROM orders
+            WHERE order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
+              AND requested_at IS NOT NULL
+              AND requested_at >= :startAt
+              AND requested_at < :endAt
+            GROUP BY DATE_FORMAT(requested_at, :dateFormat)
+            """, nativeQuery = true)
+    List<Object[]> sumTransactionAmountByRequestedPeriod(
+            @Param("dateFormat") String dateFormat,
+            @Param("startAt") LocalDateTime startAt,
+            @Param("endAt") LocalDateTime endAt);
+
     // 관리자 대시보드용 기간별 주문 건수 (주문접수 이후 상태만 집계)
     @Query(value = """
             SELECT DATE_FORMAT(requested_at, :dateFormat) AS label, COUNT(*) AS count

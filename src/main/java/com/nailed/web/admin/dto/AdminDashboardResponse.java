@@ -12,6 +12,9 @@ public class AdminDashboardResponse {
             SalesStats sales,
             ReportStats reports,
             InquiryStats inquiries,
+            List<CategorySales> categorySales,
+            List<ConditionCount> productConditions,
+            List<PopularProduct> popularProducts,
             List<RecentOrder> recentOrders,
             List<RecentReport> recentReports,
             List<RecentProduct> recentProducts,
@@ -62,6 +65,26 @@ public class AdminDashboardResponse {
             long totalInquiries,
             long pendingInquiries,
             long answeredInquiries
+    ) {}
+
+    // 대분류 카테고리별 상품 수 / 유효 주문 수 / 거래액
+    public record CategorySales(
+            String category,
+            long productCount,
+            long orderCount,
+            long amount
+    ) {}
+
+    // 상품 컨디션(S/A/B/C/D)별 상품 수
+    public record ConditionCount(
+            String conditionCode,
+            long count
+    ) {}
+
+    // 조회수 상위 인기 상품
+    public record PopularProduct(
+            String title,
+            long viewCount
     ) {}
 
     public record RecentOrder(

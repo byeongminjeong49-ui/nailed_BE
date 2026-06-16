@@ -60,6 +60,9 @@ public class AdminDashboardService {
                 salesStats(),
                 reportStats(),
                 inquiryStats(),
+                categorySales(),
+                productConditions(),
+                popularProducts(),
                 recentOrders(),
                 recentReports(),
                 recentProducts(),
@@ -76,6 +79,8 @@ public class AdminDashboardService {
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
         Map<String, Long> sales = toValueMap(orderRepository.sumSalesByRequestedPeriod(
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
+        Map<String, Long> transactionAmounts = toValueMap(orderRepository.sumTransactionAmountByRequestedPeriod(
+                trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
         Map<String, Long> orders = toValueMap(orderRepository.countOrdersByRequestedPeriod(
                 trendRange.dateFormat(), trendRange.startAt(), trendRange.endAt()));
         Map<String, Long> reports = toValueMap(reportRepository.countReportsByPeriod(
@@ -91,6 +96,7 @@ public class AdminDashboardService {
                         label,
                         members.getOrDefault(label, 0L),
                         sales.getOrDefault(label, 0L),
+                        transactionAmounts.getOrDefault(label, 0L),
                         orders.getOrDefault(label, 0L),
                         reports.getOrDefault(label, 0L),
                         inquiries.getOrDefault(label, 0L),
@@ -164,6 +170,60 @@ public class AdminDashboardService {
                 count("SELECT COUNT(*) FROM inquiries WHERE inquiry_status = 'PENDING'"),
                 count("SELECT COUNT(*) FROM inquiries WHERE inquiry_status = 'ANSWERED'")
         );
+    }
+
+    private List<AdminDashboardResponse.CategorySales> categorySales() {
+        // 상품 카테고리는 최대 3단계(대분류>중분류>세부)이므로 상위로 끌어올려 대분류로 묶는다.
+        return rows("""
+                SELECT COALESCE(top.name, mid.name, leaf.name) AS big_category,
+                       COUNT(DISTINCT p.product_id) AS product_count,
+                       COUNT(DISTINCT CASE WHEN o.order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
+                                           THEN o.order_id END) AS order_count,
+                       COALESCE(SUM(CASE WHEN o.order_status IN ('REQUESTED', 'SHIPPING', 'DELIVERED')
+                                         THEN o.final_price ELSE 0 END), 0) AS amount
+                FROM products p
+                JOIN product_groups leaf ON leaf.group_id = p.category_id
+                LEFT JOIN product_groups mid ON mid.group_id = leaf.parent_id
+                LEFT JOIN product_groups top ON top.group_id = mid.parent_id
+                LEFT JOIN orders o ON o.product_id = p.product_id
+                GROUP BY COALESCE(top.name, mid.name, leaf.name)
+                ORDER BY product_count DESC
+                """).stream()
+                .map(row -> new AdminDashboardResponse.CategorySales(
+                        string(row[0]),
+                        number(row[1]).longValue(),
+                        number(row[2]).longValue(),
+                        number(row[3]).longValue()
+                ))
+                .toList();
+    }
+
+    private List<AdminDashboardResponse.ConditionCount> productConditions() {
+        return rows("""
+                SELECT condition_code, COUNT(*)
+                FROM products
+                GROUP BY condition_code
+                ORDER BY COUNT(*) DESC
+                """).stream()
+                .map(row -> new AdminDashboardResponse.ConditionCount(
+                        string(row[0]),
+                        number(row[1]).longValue()
+                ))
+                .toList();
+    }
+
+    private List<AdminDashboardResponse.PopularProduct> popularProducts() {
+        return rows("""
+                SELECT title, view_count
+                FROM products
+                ORDER BY view_count DESC
+                LIMIT 5
+                """).stream()
+                .map(row -> new AdminDashboardResponse.PopularProduct(
+                        string(row[0]),
+                        number(row[1]).longValue()
+                ))
+                .toList();
     }
 
     private List<AdminDashboardResponse.RecentOrder> recentOrders() {

@@ -12,6 +12,7 @@ public record AdminDashboardTrendResponse(
             String label,
             Long members,
             Long sales,
+            Long transactionAmount,
             Long orders,
             Long reports,
             Long inquiries,
