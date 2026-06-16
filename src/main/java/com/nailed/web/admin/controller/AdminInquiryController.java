@@ -7,9 +7,9 @@ import com.nailed.web.inquiry.dto.InquiryResponse;
 import com.nailed.web.inquiry.service.InquiryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -29,8 +29,18 @@ public class AdminInquiryController {
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<InquiryResponse.AdminSummary>>> getInquiries(
             @RequestParam(required = false) String status,
-            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(ApiResponse.success(inquiryService.getAdminInquiries(status, pageable)));
+            Pageable pageable) {
+        Sort sort;
+        if ("ANSWERED".equalsIgnoreCase(status)) {
+            sort = Sort.by(Sort.Direction.DESC, "answeredAt");
+        } else if (status == null || status.isBlank()) {
+            sort = Sort.by(Sort.Direction.DESC, "answeredAt")
+                       .and(Sort.by(Sort.Direction.DESC, "createdAt"));
+        } else {
+            sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        }
+        Pageable sorted = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
+        return ResponseEntity.ok(ApiResponse.success(inquiryService.getAdminInquiries(status, sorted)));
     }
 
     @GetMapping("/{inquiryId}")
