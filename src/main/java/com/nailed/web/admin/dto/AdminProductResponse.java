@@ -20,7 +20,8 @@ public class AdminProductResponse {
             String sellerNickname,
             String thumbnailUrl,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            LocalDateTime updatedAt,
+            String deletedReason
     ) {}
 
     public record Detail(
@@ -44,6 +45,8 @@ public class AdminProductResponse {
             String sellerNickname,
             List<String> imageUrls,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            LocalDateTime updatedAt,
+            String deletedReason,
+            LocalDateTime deletedAt
     ) {}
 }

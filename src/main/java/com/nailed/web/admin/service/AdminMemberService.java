@@ -66,7 +66,8 @@ public class AdminMemberService {
     @Transactional
     public void unsuspend(String memberId) {
         Member member = findMember(memberId);
-        if (!MemberStatus.SUSPEND.name().equals(member.getMemberStatus())) {
+        String status = member.getMemberStatus();
+        if (!MemberStatus.SUSPEND.name().equals(status) && !MemberStatus.BANNED.name().equals(status)) {
             throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
         }
         member.unsuspend();

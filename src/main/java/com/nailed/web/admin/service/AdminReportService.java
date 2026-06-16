@@ -105,6 +105,8 @@ public class AdminReportService {
                 TARGET_TYPE_MEMBER,
                 target.getMemberId(),
                 target.getNickname() != null ? target.getNickname() : target.getUserid(),
+                target.getMemberStatus(),
+                target.getSellerGrade(),
                 null,
                 null,
                 null,

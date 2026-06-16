@@ -12,6 +12,8 @@ public class AdminReportResponse {
             String targetType,
             String targetId,
             String targetName,
+            String targetMemberStatus,
+            String targetSellerGrade,
             Long productId,
             String productTitle,
             String productThumbnailUrl,

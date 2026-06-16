@@ -53,11 +53,17 @@ public class AdminProductController {
         return ResponseEntity.ok(ApiResponse.success(adminProductService.getProduct(productId)));
     }
 
-    @PatchMapping("/{productId}/hide")
-    public ResponseEntity<ApiResponse<Void>> hideProduct(
+    @PatchMapping("/{productId}/delete")
+    public ResponseEntity<ApiResponse<Void>> deleteProduct(
             @PathVariable Long productId,
             @Valid @RequestBody AdminProductHideRequest request) {
-        adminProductService.hideProduct(productId, request.reason());
+        adminProductService.deleteProduct(productId, request.reason());
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
+    @PatchMapping("/{productId}/restore")
+    public ResponseEntity<ApiResponse<Void>> restoreProduct(@PathVariable Long productId) {
+        adminProductService.restoreProduct(productId);
         return ResponseEntity.ok(ApiResponse.success());
     }
 }

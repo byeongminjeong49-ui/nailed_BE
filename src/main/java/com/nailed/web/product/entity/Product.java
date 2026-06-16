@@ -96,9 +96,10 @@ public class Product extends SoftDeleteEntity {
 
     // ── 비즈니스 메서드 ──────────────────────────────
 
-    /** 주문 취소 시 판매중으로 복원 */
+    /** 주문 취소 또는 관리자 복구 시 판매중으로 복원 */
     public void restore() {
         this.productStatus = ProductStatus.ON_SALE;
+        this.deletedReason = null;
     }
 
     /** 결제(PAID) → 판매완료 */

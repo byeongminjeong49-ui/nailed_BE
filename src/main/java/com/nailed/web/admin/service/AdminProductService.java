@@ -89,20 +89,34 @@ public class AdminProductService {
                 product.getSeller().getNickname(),
                 imageUrls,
                 product.getCreatedAt(),
-                product.getUpdatedAt()
+                product.getUpdatedAt(),
+                product.getDeletedReason(),
+                product.getDeletedAt()
         );
     }
 
     @Transactional
-    public void hideProduct(Long productId, String reason) {
+    public void deleteProduct(Long productId, String reason) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        if (product.getProductStatus() == ProductStatus.DELETED || product.getDeletedAt() != null) {
+        if (product.getProductStatus() == ProductStatus.DELETED) {
             throw new CustomException(ErrorCode.PRODUCT_DELETED);
         }
 
         product.delete(blankToNull(reason));
+    }
+
+    @Transactional
+    public void restoreProduct(Long productId) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new CustomException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (product.getProductStatus() != ProductStatus.DELETED) {
+            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
+        }
+
+        productRepository.restoreProductById(productId, ProductStatus.ON_SALE);
     }
 
     private AdminProductResponse.Summary toSummary(Product product, String thumbnailUrl) {
@@ -123,7 +137,8 @@ public class AdminProductService {
                 product.getSeller().getNickname(),
                 thumbnailUrl,
                 product.getCreatedAt(),
-                product.getUpdatedAt()
+                product.getUpdatedAt(),
+                product.getDeletedReason()
         );
     }
 

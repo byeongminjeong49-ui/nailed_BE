@@ -288,9 +288,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("sellerKeyword") String sellerKeyword,
             Pageable pageable);
     // 상품 상태 변경 (결제완료 → SOLD / 주문취소 → ON_SALE 복구)
-    @Modifying(clearAutomatically = true)
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Transactional
     @Query("UPDATE Product p SET p.productStatus = :status WHERE p.productId = :productId")
     int updateProductStatus(@Param("productId") Long productId,
                             @Param("status") ProductStatus status);
+
+    // 관리자 복구: productStatus, deletedReason, deletedAt 동시 초기화
+    @Modifying(clearAutomatically = true)
+    @Transactional
+    @Query("UPDATE Product p SET p.productStatus = :status, p.deletedReason = null, p.deletedAt = null WHERE p.productId = :productId")
+    int restoreProductById(@Param("productId") Long productId, @Param("status") ProductStatus status);
 }
