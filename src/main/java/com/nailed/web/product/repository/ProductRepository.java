@@ -178,7 +178,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                    "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                    "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                    "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(p.hashtags) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +
@@ -218,7 +219,8 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
                    "AND (:keyword IS NULL OR LOWER(p.title) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                    "OR LOWER(b.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
                    "OR LOWER(b.code) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
+                   "OR LOWER(c.name) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+                   "OR LOWER(p.hashtags) LIKE LOWER(CONCAT('%', :keyword, '%'))) " +
                    "AND (:minPrice IS NULL OR p.price >= :minPrice) " +
                    "AND (:maxPrice IS NULL OR p.price <= :maxPrice) " +
                    "AND (:conditionCode IS NULL OR p.conditionCode = :conditionCode) " +

@@ -255,7 +255,9 @@ public class ProductService {
     }
 
     private String normalizeKeyword(String keyword) {
-        return (keyword != null && !keyword.isBlank()) ? keyword.trim() : null;
+        if (keyword == null || keyword.isBlank()) return null;
+        String trimmed = keyword.trim();
+        return trimmed.startsWith("#") ? trimmed.substring(1) : trimmed;
     }
 
     private String resolveGenderCategoryCode(String gender) {
