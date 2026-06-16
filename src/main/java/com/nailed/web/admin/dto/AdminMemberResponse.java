@@ -24,8 +24,11 @@ public class AdminMemberResponse {
             String memberStatus,
             LocalDateTime lockedUntil,  // 정지 해제 기준일 (SUSPEND일 때 표시)
             int loginCount,
+            int loginFailCount,
             boolean marketingAgreed,
             String shopInfo,
-            LocalDateTime createdAt
+            LocalDateTime createdAt,
+            LocalDateTime updatedAt,
+            LocalDateTime lastLoginAt
     ) {}
 }

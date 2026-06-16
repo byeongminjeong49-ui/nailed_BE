@@ -57,9 +57,12 @@ public class AdminMemberService {
                 member.getMemberStatus(),
                 member.getLockedUntil(),
                 member.getLoginCount(),
+                member.getLoginFailCount(),
                 member.isMarketingAgreed(),
                 member.getShopInfo(),
-                member.getCreatedAt()
+                member.getCreatedAt(),
+                member.getUpdatedAt(),
+                member.getLastLoginAt()
         );
     }
 

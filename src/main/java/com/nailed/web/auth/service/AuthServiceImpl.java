@@ -132,6 +132,7 @@ public class AuthServiceImpl implements AuthService {
 
         member.resetLoginFailures();
         member.increaseLoginCount();
+        member.updateLastLoginAt(now);
 
         JwtTokenProvider.AccessTokenInfo accessTokenInfo  = jwtTokenProvider.createAccessTokenInfo(member);
         JwtTokenProvider.RefreshTokenInfo refreshTokenInfo = jwtTokenProvider.createRefreshTokenInfo(member);

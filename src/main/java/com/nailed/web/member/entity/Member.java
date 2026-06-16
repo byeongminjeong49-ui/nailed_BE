@@ -62,6 +62,9 @@ public class Member extends BaseEntity {
     @Column(name = "refresh_token_expires_at")
     private LocalDateTime refreshTokenExpiresAt;
 
+    @Column(name = "last_login_at")
+    private LocalDateTime lastLoginAt;
+
     @Column(name = "login_fail_count", nullable = false)
     @Builder.Default
     private int loginFailCount = 0;
@@ -103,6 +106,10 @@ public class Member extends BaseEntity {
 
     public void increaseLoginCount() {
         this.loginCount++;
+    }
+
+    public void updateLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public void lockUntil(LocalDateTime lockedUntil) {
