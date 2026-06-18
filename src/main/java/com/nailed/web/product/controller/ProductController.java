@@ -216,15 +216,4 @@ public class ProductController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // ── 판매 상태 변경 (본인만 가능) ─────────────────────────
-
-    @PatchMapping("/{productId}/status")
-    public ResponseEntity<ApiResponse<Void>> changeStatus(
-            @PathVariable Long productId,
-            @Valid @RequestBody ProductRequest.StatusUpdate request) {
-        String sellerId = SecurityUtil.getCurrentMemberId();
-        productService.changeStatus(productId, sellerId, request.productStatus());
-        return ResponseEntity.ok(ApiResponse.success());
-    }
-
 }

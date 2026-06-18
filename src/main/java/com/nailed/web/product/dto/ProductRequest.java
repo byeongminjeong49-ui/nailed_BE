@@ -1,6 +1,5 @@
 package com.nailed.web.product.dto;
 
-import com.nailed.common.enums.ProductStatus;
 import jakarta.validation.constraints.*;
 
 import java.util.List;
@@ -42,9 +41,4 @@ public class ProductRequest {
             List<String> imageUrls
     ) {}
 
-    /** 판매 상태 변경 (판매자 직접 변경 가능 상태만 허용) */
-    public record StatusUpdate(
-            @NotNull(message = "변경할 상태를 선택해주세요.")
-            ProductStatus productStatus
-    ) {}
 }

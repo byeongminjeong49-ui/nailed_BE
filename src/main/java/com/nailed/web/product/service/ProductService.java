@@ -354,32 +354,6 @@ public class ProductService {
         product.delete(reason);
     }
 
-    // ── 판매 상태 변경 ────────────────────────────────────────
-
-    @Transactional
-    public void changeStatus(Long productId, String sellerId, ProductStatus newStatus) {
-        Product product = findActiveProduct(productId);
-        validateOwner(product, sellerId);
-
-        // DELETED는 delete API로만 처리
-        if (newStatus == ProductStatus.DELETED) {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-
-        // 현재 상태 그대로면 변경 불필요
-        if (product.getProductStatus() == newStatus) {
-            return;
-        }
-
-        if (newStatus == ProductStatus.ON_SALE) {
-            product.restore();
-        } else if (newStatus == ProductStatus.SOLD) {
-            product.completeSale();
-        } else {
-            throw new CustomException(ErrorCode.INVALID_INPUT_VALUE);
-        }
-    }
-
     // ── 사이즈 검증 ──────────────────────────────────────────
 
     private void validateSize(String size, ProductGroup category) {
