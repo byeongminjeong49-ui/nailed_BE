@@ -22,10 +22,18 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadPath + "/");
 
-        registry.addResourceHandler("/images/products/**")
-                .addResourceLocations("file:" + staticProductPath + "/");
+//        registry.addResourceHandler("/images/products/**")
+//                .addResourceLocations("file:" + staticProductPath + "/");
 
+        registry.addResourceHandler("/images/products/**")
+                .addResourceLocations("file:" + staticProductPath + "/",
+                        "classpath:/static/images/products/");
+        
+//        registry.addResourceHandler("/images/profileImg/**")
+//                .addResourceLocations("file:" + profileImagePath + "/");
+//        
         registry.addResourceHandler("/images/profileImg/**")
-                .addResourceLocations("file:" + profileImagePath + "/");
+        .addResourceLocations("file:" + profileImagePath + "/",
+                                "classpath:/static/images/profileImg/");
     }
 }
