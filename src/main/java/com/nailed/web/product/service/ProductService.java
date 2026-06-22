@@ -63,10 +63,10 @@ public class ProductService {
     private final ReviewRepository reviewRepository;
     private final WishlistRepository wishlistRepository;
 
-    @Value("${file.upload.path:uploads}")
+    @Value("${file.upload.path:./data/uploads}")
     private String uploadPath;
 
-    @Value("${file.static.product.path:src/main/resources/static/images/products}")
+    @Value("${file.static.product.path:./data/images/products}")
     private String staticProductPath;
 
     // ── 카테고리 / 브랜드 목록 조회 ──────────────────────────

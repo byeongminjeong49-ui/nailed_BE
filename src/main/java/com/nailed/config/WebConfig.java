@@ -8,13 +8,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
-    @Value("${file.upload.path:uploads}")
+    @Value("${file.upload.path:./data/uploads}")
     private String uploadPath;
 
-    @Value("${file.static.product.path:src/main/resources/static/images/products}")
+    @Value("${file.static.product.path:./data/images/products}")
     private String staticProductPath;
 
-    @Value("${app.profile-image.upload-dir:src/main/resources/static/images/profileImg}")
+    @Value("${app.profile-image.upload-dir:./data/images/profileImg}")
     private String profileImagePath;
 
     @Override
