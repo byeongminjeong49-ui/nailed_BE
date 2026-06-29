@@ -84,7 +84,7 @@ public class SecurityConfig {
                 "http://localhost:5173",
                 "http://127.0.0.1:5173",
                 "http://13.125.205.120",
-                "http://16.176.153.99",
+                "http://15.134.228.33",
                 "http://52.78.146.81"));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*")); // Authorization 헤더 포함
