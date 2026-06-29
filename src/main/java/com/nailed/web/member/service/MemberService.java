@@ -203,6 +203,31 @@ public class MemberService {
     @Transactional
     public void withdraw(String memberId) {
         ensureMemberExists(memberId);
+
+        // 1) 진행중 거래(주문접수/결제완료/배송중)가 있으면 탈퇴 차단
+        //    구매자·판매자 양쪽 모두 검사 — 배송/정산이 끝나지 않은 상태에서 회원이 사라지는 것을 막음
+        long activeOrderCount = count("""
+                SELECT COUNT(*) FROM orders
+                WHERE (seller_id = :memberId OR buyer_id = :memberId)
+                  AND order_status IN ('REQUESTED', 'PAID', 'SHIPPING')
+                """, memberId);
+        if (activeOrderCount > 0) {
+            throw new CustomException(ErrorCode.WITHDRAW_HAS_ACTIVE_ORDER);
+        }
+
+        // 2) 판매중(ON_SALE) 상품 일괄 소프트 삭제
+        //    판매완료(SOLD) 상품은 거래·정산 이력 보존을 위해 그대로 둠
+        entityManager.createNativeQuery("""
+                UPDATE products
+                SET product_status = 'DELETED',
+                    deleted_reason = '판매자 탈퇴',
+                    deleted_at = NOW()
+                WHERE seller_id = :memberId AND product_status = 'ON_SALE'
+                """)
+                .setParameter("memberId", memberId)
+                .executeUpdate();
+
+        // 3) 회원 상태 탈퇴 처리
         entityManager.createNativeQuery("""
                 UPDATE members
                 SET member_status = 'WITHDRAWN',

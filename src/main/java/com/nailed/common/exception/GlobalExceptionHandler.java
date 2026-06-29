@@ -1,6 +1,7 @@
 package com.nailed.common.exception;
 
 import com.nailed.common.response.ApiResponse;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -24,6 +25,15 @@ public class GlobalExceptionHandler {
         log.warn("[CustomException] code={}, message={}", e.getErrorCode().getCode(), e.getMessage());
         ErrorCode ec = e.getErrorCode();
         return ResponseEntity.status(ec.getHttpStatus()).body(ApiResponse.error(ec));
+    }
+
+    // 존재하지 않는 엔티티 조회 시 → 500이 아니라 404로 응답 (예외 메시지를 그대로 노출)
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<ApiResponse<Void>> handleEntityNotFound(EntityNotFoundException e) {
+        log.warn("[EntityNotFoundException] {}", e.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.NOT_FOUND.getHttpStatus())
+                .body(ApiResponse.error(ErrorCode.NOT_FOUND.getCode(), e.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

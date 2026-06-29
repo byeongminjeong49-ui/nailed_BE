@@ -1,6 +1,7 @@
 package com.nailed.web.order.service;
 import com.nailed.common.enums.CourierCode;
 import com.nailed.common.enums.OrderStatus;
+import com.nailed.common.exception.CustomException;
 import com.nailed.common.exception.ErrorCode;
 import com.nailed.common.util.EnumUtil;
 import com.nailed.web.member.service.SellerGradeService;
@@ -28,11 +29,11 @@ public class MockShippingService implements ShippingService {
     public OrderResponseDto registerTracking(String orderId, String carrierCode, String trackingNumber) {
         CourierCode courier = EnumUtil.parse(CourierCode.class, carrierCode, ErrorCode.INVALID_COURIER_CODE);
         if (!TRACKING_PATTERN.matcher(trackingNumber).matches()) {
-            throw new IllegalArgumentException("유효하지 않은 운송장 번호입니다. 숫자 10~13자리로 입력해주세요.");
+            throw new CustomException(ErrorCode.INVALID_TRACKING_NUMBER);
         }
         Order order = findOrder(orderId);
         if (!OrderStatus.REQUESTED.name().equals(order.getOrderStatus())) {
-            throw new IllegalStateException("주문접수 상태의 주문만 운송장을 등록할 수 있습니다.");
+            throw new CustomException(ErrorCode.DELIVERY_INVALID_STATUS);
         }
         order.startShipping(courier, trackingNumber);
         Order savedOrder = orderRepository.save(order);
@@ -46,7 +47,7 @@ public class MockShippingService implements ShippingService {
     public OrderResponseDto confirmDelivery(String orderId) {
         Order order = findOrder(orderId);
         if (!OrderStatus.SHIPPING.name().equals(order.getOrderStatus())) {
-            throw new IllegalStateException("배송 중 상태의 주문만 배송 완료 처리할 수 있습니다.");
+            throw new CustomException(ErrorCode.DELIVERY_INVALID_STATUS);
         }
         order.markAsDelivered();
         Order savedOrder = orderRepository.save(order);

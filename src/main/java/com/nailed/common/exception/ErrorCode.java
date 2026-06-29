@@ -43,6 +43,7 @@ public enum ErrorCode {
     INVALID_BANK_ACCOUNT                (HttpStatus.BAD_REQUEST,            "M012", "유효하지 않은 계좌 정보입니다."),
     INVALID_REFERRER                    (HttpStatus.BAD_REQUEST,            "M013", "존재하지 않는 추천인 닉네임입니다."),
     FILE_UPLOAD_FAILED                  (HttpStatus.INTERNAL_SERVER_ERROR,  "M014", "파일 업로드에 실패했습니다."),
+    WITHDRAW_HAS_ACTIVE_ORDER           (HttpStatus.CONFLICT,               "M015", "진행중인 거래가 있어 탈퇴할 수 없습니다."),
 
     // ─────────────────────────────────────────────────────────────────
     // P : Product (products / product_groups / product_images 테이블)
@@ -82,6 +83,7 @@ public enum ErrorCode {
     INVALID_COURIER_CODE                (HttpStatus.BAD_REQUEST,            "D001", "지원하지 않는 택배사입니다."),
     TRACKING_NUMBER_ALREADY_EXISTS      (HttpStatus.CONFLICT,               "D002", "운송장 번호가 이미 등록되어 있습니다."),
     DELIVERY_INVALID_STATUS             (HttpStatus.BAD_REQUEST,            "D003", "현재 배송 단계에서는 진행할 수 없습니다."),
+    INVALID_TRACKING_NUMBER             (HttpStatus.BAD_REQUEST,            "D004", "유효하지 않은 운송장 번호입니다. 숫자 10~13자리로 입력해주세요."),
 
     // ─────────────────────────────────────────────────────────────────
     // R : Report / Penalty (reports / member_penalties 테이블)

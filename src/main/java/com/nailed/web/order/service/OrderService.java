@@ -30,7 +30,7 @@ public class OrderService {
     @Transactional
     public OrderResponseDto createOrder(String buyerId, String sellerId, OrderRequestDto req) {
         if (buyerId.equals(sellerId)) {
-            throw new IllegalArgumentException("구매자와 판매자가 동일할 수 없습니다.");
+            throw new CustomException(ErrorCode.SELF_ORDER_NOT_ALLOWED);
         }
         Product product;
         try {
@@ -103,10 +103,10 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
         if (!sellerId.equals(order.getSellerId())) {
-            throw new IllegalStateException("판매자만 주문을 확인할 수 있습니다.");
+            throw new CustomException(ErrorCode.ORDER_UNAUTHORIZED);
         }
         if (!OrderStatus.PAID.name().equals(order.getOrderStatus())) {
-            throw new IllegalStateException("결제완료 상태의 주문만 확인할 수 있습니다.");
+            throw new CustomException(ErrorCode.ORDER_INVALID_STATUS);
         }
         order.markAsRequested();
         Product product = productRepository.findById(order.getProductId())
@@ -119,10 +119,10 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 주문입니다. orderId=" + orderId));
         if (!buyerId.equals(order.getBuyerId())) {
-            throw new IllegalStateException("구매자만 주문을 취소할 수 있습니다.");
+            throw new CustomException(ErrorCode.ORDER_UNAUTHORIZED);
         }
         if (!OrderStatus.PAID.name().equals(order.getOrderStatus())) {
-            throw new IllegalStateException("결제완료 상태의 주문만 취소할 수 있습니다.");
+            throw new CustomException(ErrorCode.ORDER_INVALID_STATUS);
         }
         orderRepository.cancelOrder(orderId);
         productRepository.updateProductStatus(order.getProductId(), ProductStatus.ON_SALE);
