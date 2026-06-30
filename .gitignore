@@ -1,6 +1,15 @@
 HELP.md
 target/
 .mvn/wrapper/maven-wrapper.jar
+
+### Eclipse 컴파일 산출물 ###
+bin/
+
+### Claude Code 작업 흔적 ###
+.claude/
+
+### 런타임 업로드 파일 ###
+uploads/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
