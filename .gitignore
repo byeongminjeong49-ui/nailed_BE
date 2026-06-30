@@ -40,3 +40,6 @@ build/
 
 ### VS Code ###
 .vscode/
+### 민감 정보 ###
+application.properties
+.env
